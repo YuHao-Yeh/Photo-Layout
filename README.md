@@ -29,6 +29,16 @@ is just static files (no backend or database).
 - Resize frames by dragging the lines between photos (each line has a small
   handle). The frames on both sides grow or shrink and the page stays filled.
   Frames can't be made smaller than 8 mm.
+- Zoom into the page to check details: pinch with two fingers, scroll the mouse
+  wheel (zooms toward the cursor), pinch on a trackpad, use the **− 100% +**
+  control in the corner, or press + / − / 0 on a keyboard. Move around with two
+  fingers, by dragging the empty area around the page, or with the middle mouse
+  button. Double-tap the empty area (or tap the %) to see the whole page again.
+  Pinching or scrolling on a photo that is already selected zooms that photo
+  instead. Zoom only affects the view, never the exported file.
+- Adapts to the screen: phones (portrait and landscape), tablets, laptops and
+  large monitors. On wide screens toolbars stay centred; on short screens
+  (phones held sideways) bars get slimmer so the page keeps the room.
 - Themes (Settings → Appearance): three Frutiger Aero styles (Aero Sky,
   Aero Wave, Aero Candy) with glossy buttons and glass panels, or Classic, which
   follows the device's light/dark mode. Theme art is in [img/](img/) and styles

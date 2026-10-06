@@ -41,6 +41,11 @@
       <button type="button" class="button primary" data-action="add" data-i18n="addPhotos">Add photos</button>
     </div>
     <canvas id="page" hidden></canvas>
+    <div id="zoomCtl" class="zoom-ctl" hidden>
+      <button type="button" data-action="viewZoomOut" data-i18n-label="viewZoomOut">−</button>
+      <button type="button" id="zoomLabel" data-action="viewFit" data-i18n-label="viewFit">100%</button>
+      <button type="button" data-action="viewZoomIn" data-i18n-label="viewZoomIn">+</button>
+    </div>
     <div id="busy" class="busy" hidden data-i18n="loading">Loading photos…</div>
     <div id="toast" class="toast" role="status" hidden></div>
   </main>

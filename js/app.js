@@ -40,6 +40,8 @@ function applyTheme(theme) {
   const root = document.documentElement;
   root.dataset.theme = name;
   root.classList.toggle('aero', name !== 'classic');
+  state.shadowColor = getComputedStyle(root).getPropertyValue('--glow').trim() || 'rgba(0, 0, 0, 0.3)';
+  requestDraw();
   document.querySelector('meta[name="theme-color"]').content = THEME_COLORS[name];
 }
 
@@ -63,7 +65,8 @@ const state = {
   cellGroup: null, // open second row of the photo toolbar: 'transform' | 'photo'
   seed: 1,
   language: 'en',
-  view: { k: 1, dpr: 1 }, // preview CSS pixels per mm
+  view: { k: 1, dpr: 1, zoom: 1, cx: 0, cy: 0, w: 0, h: 0 }, // see viewScale()
+  shadowColor: 'rgba(0, 0, 0, 0.3)', // under the page; follows the theme
   exportFile: null,
   exportUrl: null,
 };
@@ -143,6 +146,7 @@ function showLayout(index) {
   state.swapFrom = -1;
   state.adjusting = false;
   state.cellGroup = null;
+  state.view.zoom = 1; // new layout: show the whole page
   updateUI();
   resize();
 }
@@ -283,11 +287,81 @@ function requestDraw() {
   });
 }
 
+// The preview canvas fills the whole stage. The page is drawn at `k` (CSS px
+// per mm when the page just fits) times the user's `zoom`, with page point
+// (cx, cy) in the middle of the stage.
+const MAX_VIEW_ZOOM = 6;
+
+const viewScale = () => state.view.k * state.view.zoom;
+
+function pageOrigin() {
+  const { w, h, cx, cy } = state.view;
+  const K = viewScale();
+  return { x: w / 2 - cx * K, y: h / 2 - cy * K };
+}
+
+/** Keeps the page reachable; at 100% it is always centred. */
+function clampView() {
+  const v = state.view;
+  if (!state.page) return;
+  if (v.zoom <= 1.0001) {
+    v.zoom = 1;
+    v.cx = state.page.width / 2;
+    v.cy = state.page.height / 2;
+  } else {
+    v.cx = clamp(v.cx, 0, state.page.width);
+    v.cy = clamp(v.cy, 0, state.page.height);
+  }
+}
+
+function resetView() {
+  state.view.zoom = 1;
+  clampView();
+  updateZoomUI();
+  requestDraw();
+}
+
+/** Zooms the whole page by `factor`, keeping the point under (clientX, clientY) still. */
+function zoomViewAt(clientX, clientY, factor) {
+  const v = state.view;
+  const anchor = toPage(clientX, clientY);
+  const r = canvas.getBoundingClientRect();
+  v.zoom = clamp(v.zoom * factor, 1, MAX_VIEW_ZOOM);
+  const K = viewScale();
+  v.cx = anchor.x - (clientX - r.left - v.w / 2) / K;
+  v.cy = anchor.y - (clientY - r.top - v.h / 2) / K;
+  clampView();
+  updateZoomUI();
+  requestDraw();
+}
+
+function zoomViewCentre(factor) {
+  const r = canvas.getBoundingClientRect();
+  zoomViewAt(r.left + r.width / 2, r.top + r.height / 2, factor);
+}
+
+function updateZoomUI() {
+  $('#zoomCtl').hidden = !state.page;
+  $('#zoomLabel').textContent = `${Math.round(state.view.zoom * 100)}%`;
+}
+
 function draw() {
   if (!state.page) return;
-  const { k, dpr } = state.view;
+  const { dpr, w, h } = state.view;
+  const K = viewScale();
+  const o = pageOrigin();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawPage(ctx, state.page, state.cells, state.photos, k, {
+  ctx.clearRect(0, 0, w, h);
+  ctx.translate(o.x, o.y);
+  // Soft shadow under the sheet of paper.
+  ctx.save();
+  ctx.shadowColor = state.shadowColor;
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 4;
+  ctx.fillStyle = state.settings.background;
+  ctx.fillRect(0, 0, state.page.width * K, state.page.height * K);
+  ctx.restore();
+  drawPage(ctx, state.page, state.cells, state.photos, K, {
     background: state.settings.background,
     selected: state.selected,
     swapFrom: state.swapFrom,
@@ -299,20 +373,18 @@ function draw() {
 function resize() {
   if (!state.page) return;
   const stage = $('#stage');
-  const pad = 16;
-  const k = Math.min(
-    (stage.clientWidth - 2 * pad) / state.page.width,
-    (stage.clientHeight - 2 * pad) / state.page.height,
-  );
+  const w = stage.clientWidth;
+  const h = stage.clientHeight;
+  // Leave a little room around the page; more on big screens.
+  const pad = Math.max(12, Math.min(w, h) * 0.04);
+  const k = Math.min((w - 2 * pad) / state.page.width, (h - 2 * pad) / state.page.height);
   if (!(k > 0)) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  const w = state.page.width * k;
-  const h = state.page.height * k;
-  canvas.style.width = `${w}px`;
-  canvas.style.height = `${h}px`;
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
-  state.view = { k, dpr };
+  Object.assign(state.view, { k, dpr, w, h });
+  clampView();
+  updateZoomUI();
   draw();
 }
 
@@ -333,6 +405,7 @@ function updateUI() {
   }
   $('#fitBtn').classList.toggle('active', !!state.cells[state.selected]?.fit);
   $('#adjustPanel').hidden = !adjusting;
+  updateZoomUI();
   if (adjusting) syncAdjustPanel();
   $('#addBtn').disabled = state.photos.length >= MAX_PHOTOS;
   $('#nextBtn').disabled = !state.layouts.length;
@@ -472,7 +545,9 @@ let lastTap = null; // { cell, time, x, y } of the last quick tap, for double-ta
 
 function toPage(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
-  return { x: (clientX - r.left) / state.view.k, y: (clientY - r.top) / state.view.k };
+  const o = pageOrigin();
+  const K = viewScale();
+  return { x: (clientX - r.left - o.x) / K, y: (clientY - r.top - o.y) / K };
 }
 
 function cellAt(clientX, clientY) {
@@ -483,7 +558,7 @@ function cellAt(clientX, clientY) {
 /** The cut line nearest the point, if it's within grabbing distance. */
 function dividerAt(clientX, clientY) {
   const { x, y } = toPage(clientX, clientY);
-  const reach = Math.max(state.page.gap / 2, DIVIDER_HIT_PX / state.view.k);
+  const reach = Math.max(state.page.gap / 2, DIVIDER_HIT_PX / viewScale());
   let best = null;
   let bestDist = reach;
   for (const d of state.dividers) {
@@ -502,15 +577,44 @@ const pinchDistance = () => {
   return Math.hypot(a.x - b.x, a.y - b.y);
 };
 
+const pinchMidpoint = () => {
+  const [a, b] = [...pointers.values()];
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+};
+
+/** Starts dragging the whole page around (when zoomed in). */
+function startViewPan(e) {
+  gesture = { type: 'view-pan', x: e.clientX, y: e.clientY, cx: state.view.cx, cy: state.view.cy, moved: false };
+}
+
 canvas.addEventListener('pointerdown', (e) => {
+  if (!state.page) return;
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  if (pointers.size === 2 && state.selected >= 0 && gesture?.type !== 'divider') {
-    gesture = { type: 'pinch', startDist: pinchDistance(), zoom: state.cells[state.selected].zoom };
+  if (pointers.size === 2) {
+    if (gesture?.type === 'divider') return;
+    // Both fingers on a photo that was already selected: zoom the photo.
+    // Otherwise zoom the page (and undo the selection the first finger made).
+    const onSelected = [...pointers.values()].every((p) => state.selected >= 0 && cellAt(p.x, p.y) === state.selected);
+    const firstFinger = gesture;
+    if (onSelected && !(firstFinger?.type === 'pan' && !firstFinger.wasSelected)) {
+      gesture = { type: 'pinch', startDist: pinchDistance(), zoom: state.cells[state.selected].zoom };
+    } else {
+      if (firstFinger?.type === 'pan' && !firstFinger.wasSelected) select(firstFinger.prevSelected);
+      const mid = pinchMidpoint();
+      gesture = { type: 'view-pinch', startDist: pinchDistance(), zoom: state.view.zoom, anchor: toPage(mid.x, mid.y) };
+    }
     return;
   }
   if (pointers.size !== 1) return;
+
+  if (e.button === 1) {
+    // Middle mouse button: drag the page around.
+    e.preventDefault();
+    startViewPan(e);
+    return;
+  }
 
   const divider = state.swapFrom < 0 && dividerAt(e.clientX, e.clientY);
   if (divider) {
@@ -528,11 +632,13 @@ canvas.addEventListener('pointerdown', (e) => {
     return;
   }
   if (hit < 0) {
-    select(-1);
-    gesture = null;
+    // Empty area around the page: drag to move the page, tap to deselect.
+    startViewPan(e);
     return;
   }
-  if (hit !== state.selected) select(hit);
+  const prevSelected = state.selected;
+  const wasSelected = hit === prevSelected;
+  if (!wasSelected) select(hit);
   const c = state.cells[hit];
 
   const now = performance.now();
@@ -543,7 +649,7 @@ canvas.addEventListener('pointerdown', (e) => {
     toggleFit(c);
     return;
   }
-  gesture = { type: 'pan', cell: hit, x: e.clientX, y: e.clientY, panX: c.panX, panY: c.panY };
+  gesture = { type: 'pan', cell: hit, x: e.clientX, y: e.clientY, panX: c.panX, panY: c.panY, wasSelected, prevSelected };
 });
 
 /** Double-tap: switch between filling the frame and showing the whole photo. */
@@ -558,9 +664,12 @@ function toggleFit(c) {
 
 canvas.addEventListener('pointermove', (e) => {
   if (!pointers.has(e.pointerId)) {
-    // Mouse hovering: show a resize cursor over cut lines.
-    const d = state.page && dividerAt(e.clientX, e.clientY);
-    canvas.style.cursor = d ? (d.dir === 'h' ? 'col-resize' : 'row-resize') : '';
+    // Mouse hovering: resize cursor over cut lines, hand over empty space when zoomed.
+    if (!state.page) return;
+    const d = dividerAt(e.clientX, e.clientY);
+    canvas.style.cursor = d
+      ? (d.dir === 'h' ? 'col-resize' : 'row-resize')
+      : state.view.zoom > 1 && cellAt(e.clientX, e.clientY) < 0 ? 'grab' : '';
     return;
   }
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -574,18 +683,45 @@ canvas.addEventListener('pointermove', (e) => {
     return;
   }
 
+  if (gesture?.type === 'view-pan') {
+    const dx = e.clientX - gesture.x;
+    const dy = e.clientY - gesture.y;
+    if (Math.hypot(dx, dy) > TAP_SLOP_PX) gesture.moved = true;
+    state.view.cx = gesture.cx - dx / viewScale();
+    state.view.cy = gesture.cy - dy / viewScale();
+    clampView();
+    requestDraw();
+    return;
+  }
+
+  if (gesture?.type === 'view-pinch' && pointers.size === 2) {
+    const v = state.view;
+    const mid = pinchMidpoint();
+    const r = canvas.getBoundingClientRect();
+    v.zoom = clamp((gesture.zoom * pinchDistance()) / gesture.startDist, 1, MAX_VIEW_ZOOM);
+    // Keep the page point that started under the fingers under them (also pans).
+    v.cx = gesture.anchor.x - (mid.x - r.left - v.w / 2) / viewScale();
+    v.cy = gesture.anchor.y - (mid.y - r.top - v.h / 2) / viewScale();
+    clampView();
+    updateZoomUI();
+    requestDraw();
+    return;
+  }
+
   const c = state.cells[state.selected];
   if (!gesture || !c) return;
 
   if (gesture.type === 'pinch' && pointers.size === 2) {
     c.zoom = clamp((gesture.zoom * pinchDistance()) / gesture.startDist, 1, MAX_ZOOM);
   } else if (gesture.type === 'pan') {
-    const { maxX, maxY } = cellGeometry(c, state.photos[c.photo].img, state.view.k);
+    const { maxX, maxY } = cellGeometry(c, state.photos[c.photo].img, viewScale());
     if (maxX > 0) c.panX = clamp(gesture.panX + (e.clientX - gesture.x) / maxX, -1, 1);
     if (maxY > 0) c.panY = clamp(gesture.panY + (e.clientY - gesture.y) / maxY, -1, 1);
   }
   requestDraw();
 });
+
+let lastEmptyTap = 0;
 
 function endPointer(e) {
   pointers.delete(e.pointerId);
@@ -594,26 +730,56 @@ function endPointer(e) {
       Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) < TAP_SLOP_PX) {
     lastTap = { cell: gesture.cell, time: performance.now(), x: e.clientX, y: e.clientY };
   }
+  // A tap on the empty area deselects; a double-tap there fits the page again.
+  if (e.type === 'pointerup' && gesture?.type === 'view-pan' && !gesture.moved && pointers.size === 0) {
+    const now = performance.now();
+    if (now - lastEmptyTap < DOUBLE_TAP_MS) {
+      lastEmptyTap = 0;
+      resetView();
+    } else {
+      lastEmptyTap = now;
+      if (state.selected >= 0) select(-1);
+    }
+  }
   if (gesture?.type === 'divider' && pointers.size === 0) {
     state.activeDivider = null;
     requestDraw();
   }
   // Lifting one finger of a pinch should not turn into a pan.
-  if (gesture?.type === 'pinch' || pointers.size === 0) gesture = null;
+  if (gesture?.type === 'pinch' || gesture?.type === 'view-pinch' || pointers.size === 0) gesture = null;
 }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 
+// Mouse wheel / trackpad: zoom the page toward the cursor. Over the selected
+// photo it zooms that photo instead. Trackpad pinch arrives as ctrl+wheel.
 canvas.addEventListener('wheel', (e) => {
-  const c = state.cells[state.selected];
-  if (!c) return;
+  if (!state.page) return;
   e.preventDefault();
-  c.zoom = clamp(c.zoom * Math.exp(-e.deltaY * 0.002), 1, MAX_ZOOM);
-  requestDraw();
+  const lines = e.deltaMode === 1 ? 33 : 1; // some mice report lines, not pixels
+  const factor = Math.exp(-e.deltaY * lines * (e.ctrlKey ? 0.01 : 0.0015));
+  const c = state.cells[state.selected];
+  if (c && cellAt(e.clientX, e.clientY) === state.selected) {
+    c.zoom = clamp(c.zoom * factor, 1, MAX_ZOOM);
+    requestDraw();
+    return;
+  }
+  if (e.deltaX && !e.ctrlKey) {
+    // Sideways swipe on a trackpad moves the page.
+    state.view.cx += (e.deltaX * lines) / viewScale();
+    clampView();
+  }
+  zoomViewAt(e.clientX, e.clientY, factor);
 }, { passive: false });
 
-$('#stage').addEventListener('pointerdown', (e) => {
-  if (e.target === e.currentTarget && state.selected >= 0) select(-1);
+// Keyboard on computers: + / - / 0 zoom the page (not while typing in a field).
+document.addEventListener('keydown', (e) => {
+  if (!state.page || e.target.closest('input, select, textarea, dialog[open]')) return;
+  if (e.key === '+' || e.key === '=') zoomViewCentre(1.25);
+  else if (e.key === '-' || e.key === '_') zoomViewCentre(1 / 1.25);
+  else if (e.key === '0') resetView();
+  else return;
+  e.preventDefault();
 });
 
 // Stop Safari's page pinch-zoom from fighting the photo pinch.
@@ -805,6 +971,9 @@ const actions = {
   remove: removeSelectedPhoto,
   replace: () => $('#replaceInput').click(),
   deselect: () => select(-1),
+  viewZoomIn: () => zoomViewCentre(1.25),
+  viewZoomOut: () => zoomViewCentre(1 / 1.25),
+  viewFit: resetView,
   group: (button) => {
     const g = button.dataset.group;
     state.cellGroup = state.cellGroup === g ? null : g;

@@ -29,17 +29,18 @@ const DEFAULT_SETTINGS = {
   background: '#ffffff',
   dpi: 300,
   language: null, // null = follow the device language
-  theme: 'sky', // 'sky' | 'wave' | 'candy' (Frutiger Aero) or 'classic'
+  theme: 'sky', // 'sky' | 'wave' | 'candy' (Frutiger Aero), 'channel' or 'classic'
 };
 
 // Browser toolbar colour on phones, per theme.
-const THEME_COLORS = { sky: '#a8d6f6', wave: '#e9f8f6', candy: '#cdeefc', classic: '#1f6feb' };
+const THEME_COLORS = { sky: '#a8d6f6', wave: '#e9f8f6', candy: '#cdeefc', channel: '#ffffff', classic: '#1f6feb' };
+const AERO_THEMES = ['sky', 'wave', 'candy'];
 
 function applyTheme(theme) {
   const name = theme in THEME_COLORS ? theme : DEFAULT_SETTINGS.theme;
   const root = document.documentElement;
   root.dataset.theme = name;
-  root.classList.toggle('aero', name !== 'classic');
+  root.classList.toggle('aero', AERO_THEMES.includes(name));
   state.shadowColor = getComputedStyle(root).getPropertyValue('--glow').trim() || 'rgba(0, 0, 0, 0.3)';
   requestDraw();
   document.querySelector('meta[name="theme-color"]').content = THEME_COLORS[name];

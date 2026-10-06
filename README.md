@@ -40,7 +40,8 @@ is just static files (no backend or database).
   large monitors. On wide screens toolbars stay centred; on short screens
   (phones held sideways) bars get slimmer so the page keeps the room.
 - Themes (Settings → Appearance): three Frutiger Aero styles (Aero Sky,
-  Aero Wave, Aero Candy) with glossy buttons and glass panels, or Classic, which
+  Aero Wave, Aero Candy) with glossy buttons and glass panels; Channel, a clean
+  console-menu look (white tiles, pinstripes, cyan accents); or Classic, which
   follows the device's light/dark mode. Theme art is in [img/](img/) and styles
   in [css/themes.css](css/themes.css).
 - English and Traditional Chinese (繁體中文). Uses the device language on the

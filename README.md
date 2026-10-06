@@ -17,7 +17,8 @@ is just static files (no backend or database).
 - Margin, spacing between photos, background colour, and an option to allow
   rotating photos 90° for a better fit.
 - Tap a photo to adjust it: drag to choose which part shows, pinch or use
-  Smaller/Larger to zoom, Rotate, Reset, Swap with another photo, or Remove.
+  Smaller/Larger to zoom, Rotate, Reset, Swap with another photo, Replace it
+  with a different photo (the frames stay as they are), or Remove.
 - Double-tap a photo to show the whole photo inside its frame (no cropping,
   with empty space on two sides). Double-tap again, or Reset, to fill the frame.
 - Resize frames by dragging the lines between photos (each line has a small

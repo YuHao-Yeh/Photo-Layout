@@ -90,6 +90,7 @@ function regenerate({ newSeed = false } = {}) {
   const s = state.settings;
   const aspects = state.photos.map((p) => p.aspect);
   state.layouts = [];
+  state.layoutsStale = false;
   if (aspects.length) {
     const orientations = s.orientation === 'auto' ? ['portrait', 'landscape'] : [s.orientation];
     const all = orientations.flatMap((o) =>
@@ -115,6 +116,8 @@ function showLayout(index) {
   state.page = layout ? layout.page : null;
   // A copy, so resized frames don't leak into the stored alternative.
   state.tree = layout ? cloneTree(layout.tree) : null;
+  // Frame sizes stay based on these aspects even if a photo is replaced later.
+  state.treeAspects = state.photos.map((p) => p.aspect);
   state.cells = layout
     ? layout.cells.map((c) => ({ ...c, rot: c.rotated ? 90 : 0, fit: false, zoom: 1, panX: 0, panY: 0 }))
     : [];
@@ -126,7 +129,7 @@ function showLayout(index) {
 }
 
 function relayout() {
-  return layoutTree(state.tree, state.photos.map((p) => p.aspect), state.page);
+  return layoutTree(state.tree, state.treeAspects, state.page);
 }
 
 /**
@@ -158,8 +161,10 @@ function moveDivider(divider, pos) {
 }
 
 function nextLayout() {
-  if (state.layouts.length > 1) showLayout((state.layoutIndex + 1) % state.layouts.length);
-  else regenerate({ newSeed: true });
+  // After a photo was replaced, the stored alternatives were made for the old
+  // photo, so build new ones instead of cycling.
+  if (state.layoutsStale || state.layouts.length <= 1) regenerate({ newSeed: true });
+  else showLayout((state.layoutIndex + 1) % state.layouts.length);
 }
 
 // ---------- photos ----------
@@ -208,6 +213,28 @@ async function addFiles(fileList) {
 function removeSelectedPhoto() {
   state.photos.splice(state.cells[state.selected].photo, 1);
   regenerate();
+}
+
+/** Puts a new photo into the selected frame, leaving every frame where it is. */
+async function replaceSelectedPhoto(file) {
+  const c = state.cells[state.selected];
+  if (!c || !file) return;
+  setBusy(true);
+  try {
+    state.photos[c.photo] = await loadPhoto(file);
+  } catch {
+    toast(t('openFailed', { n: 1 }));
+    return;
+  } finally {
+    setBusy(false);
+  }
+  c.rotated = state.settings.allowRotate && shouldRotate(c.w / c.h, state.photos[c.photo].aspect);
+  c.rot = c.rotated ? 90 : 0;
+  c.fit = false;
+  c.zoom = 1;
+  c.panX = c.panY = 0;
+  state.layoutsStale = true;
+  requestDraw();
 }
 
 function swapCells(i, j) {
@@ -648,6 +675,7 @@ const actions = {
     requestDraw();
   },
   remove: removeSelectedPhoto,
+  replace: () => $('#replaceInput').click(),
   deselect: () => select(-1),
   makePdf: () => createExport('pdf'),
   makeJpg: () => createExport('jpg'),
@@ -670,6 +698,11 @@ document.addEventListener('click', (e) => {
 $('#fileInput').addEventListener('change', (e) => {
   addFiles(e.target.files);
   e.target.value = ''; // allow picking the same files again
+});
+
+$('#replaceInput').addEventListener('change', (e) => {
+  replaceSelectedPhoto(e.target.files[0]);
+  e.target.value = '';
 });
 
 $('#dpiSelect').addEventListener('change', (e) => {

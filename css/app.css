@@ -235,3 +235,46 @@ input[type="color"] { width: 52px; height: 36px; padding: 0; border: 1px solid v
   text-align: center;
   z-index: 10;
 }
+
+/* Photo toolbar: scroll sideways on narrow phones rather than squash labels. */
+#cellBar { overflow-x: auto; scrollbar-width: none; }
+#cellBar::-webkit-scrollbar { display: none; }
+#cellBar { gap: 0; padding-left: calc(env(safe-area-inset-left) + 4px); padding-right: calc(env(safe-area-inset-right) + 4px); }
+#cellBar button { flex: 1 1 auto; padding: 4px 1px; white-space: nowrap; }
+
+/* ---------- colour adjustment panel (調色) ---------- */
+.adjust-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 10px) calc(env(safe-area-inset-left) + 16px);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.presets { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.presets::-webkit-scrollbar { display: none; }
+.presets button {
+  flex: 1 0 auto;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.presets button.active { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+.sliders { display: grid; gap: 2px; margin: 0; }
+.sliders label {
+  display: grid;
+  grid-template-columns: 5.5em 1fr 2.5em;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  font-size: 14px;
+}
+.sliders output { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.adjust-actions { display: flex; gap: 10px; }
+.adjust-actions .button { flex: 1; min-height: 40px; padding: 8px; }

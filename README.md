@@ -19,6 +19,10 @@ is just static files (no backend or database).
 - Tap a photo to adjust it: drag to choose which part shows, pinch or use
   Smaller/Larger to zoom, Rotate, Reset, Swap with another photo, Replace it
   with a different photo (the frames stay as they are), or Remove.
+- **Adjust (調色)**: change a photo's brightness, contrast, saturation and
+  warmth, or tap a preset (Original, B&W, Vivid, Warm, Cool). Edits show live,
+  stay with the photo when it's swapped, and are included in exports. The
+  original is kept, so Reset always gets it back unchanged.
 - Double-tap a photo to show the whole photo inside its frame (no cropping,
   with empty space on two sides). Double-tap again, or Reset, to fill the frame.
 - Resize frames by dragging the lines between photos (each line has a small

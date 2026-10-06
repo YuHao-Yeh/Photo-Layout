@@ -1,6 +1,6 @@
 // Network-first service worker: always serves the latest version when online,
 // falls back to the cached copy so the app also works offline.
-const CACHE = 'photo-layout-v5';
+const CACHE = 'photo-layout-v6';
 const ASSETS = [
   './',
   'index.html',
@@ -10,6 +10,7 @@ const ASSETS = [
   'js/render.js',
   'js/pdf.js',
   'js/i18n.js',
+  'js/adjust.js',
   'manifest.webmanifest',
   'icons/icon.svg',
   'icons/icon-192.png',

@@ -2,11 +2,13 @@ import { PAPER_SIZES, generateLayouts, shouldRotate, layoutTree, cloneTree, spli
 import { drawPage, cellGeometry } from './render.js';
 import { buildPdf } from './pdf.js';
 import { t, setLanguage, detectLanguage } from './i18n.js';
+import { applyAdjustments, isNeutral, NEUTRAL, PRESETS } from './adjust.js';
 
 const MAX_PHOTOS = 12;
 const LOAD_MAX_PIXELS = 3.5e6; // per photo; keeps 12 photos within iPhone memory limits
 const MAX_EXPORT_PIXELS = 16e6; // iOS Safari refuses canvases above ~16.7M pixels
 const MAX_ZOOM = 5;
+const PREVIEW_MAX_SIDE = 900; // px; colour edits render at this size while a slider moves
 const MIN_FRAME_MM = 8; // frames can't be dragged smaller than this
 const DOUBLE_TAP_MS = 350;
 const TAP_SLOP_PX = 10; // a touch that moves less than this is a tap, not a drag
@@ -45,6 +47,7 @@ const state = {
   cells: [], // current layout's cells plus the user's edits (rot, zoom, panX, panY)
   selected: -1,
   swapFrom: -1,
+  adjusting: false, // colour panel open for the selected photo
   seed: 1,
   language: 'en',
   view: { k: 1, dpr: 1 }, // preview CSS pixels per mm
@@ -122,8 +125,10 @@ function showLayout(index) {
     ? layout.cells.map((c) => ({ ...c, rot: c.rotated ? 90 : 0, fit: false, zoom: 1, panX: 0, panY: 0 }))
     : [];
   state.dividers = layout ? relayout().dividers : [];
+  state.photos.forEach(finishAdjusting);
   state.selected = -1;
   state.swapFrom = -1;
+  state.adjusting = false;
   updateUI();
   resize();
 }
@@ -180,7 +185,8 @@ async function loadPhoto(file) {
     c.width = Math.max(1, Math.round(img.naturalWidth * scale));
     c.height = Math.max(1, Math.round(img.naturalHeight * scale));
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    return { img: c, aspect: c.width / c.height };
+    // `img` is what gets drawn: the original, or a colour-adjusted copy of it.
+    return { img: c, original: c, aspect: c.width / c.height, adjust: { ...NEUTRAL } };
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -300,10 +306,13 @@ function resize() {
 
 function updateUI() {
   const editing = state.selected >= 0;
+  const adjusting = editing && state.adjusting;
   $('#empty').hidden = state.photos.length > 0;
   canvas.hidden = !state.page;
   $('#mainBar').hidden = editing;
-  $('#cellBar').hidden = !editing;
+  $('#cellBar').hidden = !editing || adjusting;
+  $('#adjustPanel').hidden = !adjusting;
+  if (adjusting) syncAdjustPanel();
   $('#addBtn').disabled = state.photos.length >= MAX_PHOTOS;
   $('#nextBtn').disabled = !state.layouts.length;
   $('#exportBtn').disabled = !state.page;
@@ -322,11 +331,101 @@ function updateUI() {
 }
 
 function select(index) {
+  const previous = state.cells[state.selected];
+  if (previous && index !== state.selected) finishAdjusting(state.photos[previous.photo]);
+  if (index < 0) state.adjusting = false;
   state.selected = index;
   state.swapFrom = -1;
   updateUI();
   requestDraw();
 }
+
+// ---------- colour adjustments (調色) ----------
+
+const selectedPhoto = () => state.photos[state.cells[state.selected]?.photo];
+
+/** Redraws a photo's adjusted copy: small while a slider moves, full size after. */
+function renderAdjusted(photo, full) {
+  if (isNeutral(photo.adjust)) {
+    photo.img = photo.original;
+    return;
+  }
+  const src = photo.original;
+  const scale = full ? 1 : Math.min(1, PREVIEW_MAX_SIDE / Math.max(src.width, src.height));
+  const key = full ? 'adjusted' : 'preview';
+  // Reuse one canvas per photo; iOS frees canvas memory slowly.
+  const out = (photo[key] ??= document.createElement('canvas'));
+  out.width = Math.max(1, Math.round(src.width * scale));
+  out.height = Math.max(1, Math.round(src.height * scale));
+  const c = out.getContext('2d', { willReadFrequently: true });
+  c.drawImage(src, 0, 0, out.width, out.height);
+  const pixels = c.getImageData(0, 0, out.width, out.height);
+  applyAdjustments(pixels.data, photo.adjust);
+  c.putImageData(pixels, 0, 0);
+  photo.img = out;
+}
+
+/** Makes sure the photo shows its full-resolution result, not the preview. */
+function finishAdjusting(photo) {
+  if (photo && photo.preview && photo.img === photo.preview) renderAdjusted(photo, true);
+}
+
+let previewQueued = false;
+function queuePreview(photo) {
+  if (previewQueued) return;
+  previewQueued = true;
+  requestAnimationFrame(() => {
+    previewQueued = false;
+    renderAdjusted(photo, false);
+    draw();
+  });
+}
+
+function syncAdjustPanel() {
+  const photo = selectedPhoto();
+  if (!photo) return;
+  const form = $('#adjustForm');
+  for (const key of Object.keys(NEUTRAL)) {
+    form.elements[key].value = photo.adjust[key];
+    form.elements[key].nextElementSibling.textContent = photo.adjust[key];
+  }
+  for (const b of document.querySelectorAll('[data-preset]')) {
+    const p = PRESETS[b.dataset.preset];
+    b.classList.toggle('active', Object.keys(NEUTRAL).every((k) => p[k] === photo.adjust[k]));
+  }
+}
+
+function applyPreset(name) {
+  const photo = selectedPhoto();
+  if (!photo) return;
+  photo.adjust = { ...PRESETS[name] };
+  renderAdjusted(photo, true);
+  syncAdjustPanel();
+  requestDraw();
+}
+
+$('#adjustForm').addEventListener('input', (e) => {
+  const photo = selectedPhoto();
+  if (!photo || !(e.target.name in NEUTRAL)) return;
+  photo.adjust[e.target.name] = Number(e.target.value);
+  syncAdjustPanel();
+  queuePreview(photo);
+});
+
+// `change` fires when the finger lifts: now render at full resolution.
+$('#adjustForm').addEventListener('change', () => {
+  const photo = selectedPhoto();
+  if (!photo) return;
+  renderAdjusted(photo, true);
+  requestDraw();
+});
+
+$('#adjustForm').addEventListener('submit', (e) => e.preventDefault());
+
+document.addEventListener('click', (e) => {
+  const preset = e.target.closest('[data-preset]');
+  if (preset) applyPreset(preset.dataset.preset);
+});
 
 function setBusy(on) {
   $('#busy').hidden = !on;
@@ -585,6 +684,7 @@ async function createExport(kind) {
   await new Promise(requestAnimationFrame); // let the status message paint
 
   try {
+    state.photos.forEach(finishAdjusting);
     const out = renderExportCanvas();
     const jpeg = await toBlob(out, 'image/jpeg', 0.92);
     const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
@@ -677,6 +777,17 @@ const actions = {
   remove: removeSelectedPhoto,
   replace: () => $('#replaceInput').click(),
   deselect: () => select(-1),
+  adjust: () => {
+    state.adjusting = true;
+    updateUI();
+  },
+  adjustReset: () => applyPreset('original'),
+  adjustDone: () => {
+    finishAdjusting(selectedPhoto());
+    state.adjusting = false;
+    updateUI();
+    requestDraw();
+  },
   makePdf: () => createExport('pdf'),
   makeJpg: () => createExport('jpg'),
   share: shareExport,

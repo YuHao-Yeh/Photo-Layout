@@ -1,12 +1,12 @@
 import { PAPER_SIZES, generateLayouts, shouldRotate, layoutTree, cloneTree, splitAt } from './layout.js';
-import { drawPage, cellGeometry } from './render.js';
+import { drawPage, drawCell, cellGeometry } from './render.js';
 import { buildPdf } from './pdf.js';
 import { t, setLanguage, detectLanguage } from './i18n.js';
 import { applyAdjustments, isNeutral, NEUTRAL, PRESETS } from './adjust.js';
 
 const MAX_PHOTOS = 12;
 const MAX_FILE_BYTES = 80 * 1024 * 1024; // bigger files are refused, so they can't freeze the page
-const LOAD_MAX_PIXELS = 3.5e6; // per photo; keeps 12 photos within iPhone memory limits
+const LOAD_MAX_PIXELS = 3.5e6; // per photo, for the preview; keeps 12 photos within iPhone memory limits
 const MAX_EXPORT_PIXELS = 16e6; // iOS Safari refuses canvases above ~16.7M pixels
 const MAX_ZOOM = 5;
 const PREVIEW_MAX_SIDE = 900; // px; colour edits render at this size while a slider moves
@@ -226,23 +226,37 @@ function checkFile(file) {
   if (file.size > MAX_FILE_BYTES) throw new Error('too large');
 }
 
-async function loadPhoto(file) {
-  checkFile(file);
+async function decodeImage(file) {
   const url = URL.createObjectURL(file);
   try {
     const img = new Image();
     img.src = url;
     await img.decode(); // Safari applies the EXIF orientation here
-    const scale = Math.min(1, Math.sqrt(LOAD_MAX_PIXELS / (img.naturalWidth * img.naturalHeight)));
-    const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    c.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    // `img` is what gets drawn: the original, or a colour-adjusted copy of it.
-    return { img: c, original: c, aspect: c.width / c.height, adjust: { ...NEUTRAL } };
+    return img;
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/** Copies `src` into a new canvas `scale` times its size, with good resampling. */
+function resampled(src, scale, willReadFrequently = false) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round((src.naturalWidth ?? src.width) * scale));
+  c.height = Math.max(1, Math.round((src.naturalHeight ?? src.height) * scale));
+  const ctx = c.getContext('2d', { willReadFrequently });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+
+async function loadPhoto(file) {
+  checkFile(file);
+  const img = await decodeImage(file);
+  const c = resampled(img, Math.min(1, Math.sqrt(LOAD_MAX_PIXELS / (img.naturalWidth * img.naturalHeight))));
+  // `img` is what gets drawn on screen: the original, or a colour-adjusted copy
+  // of it. `file` is kept so the export can use every pixel of the photo.
+  return { img: c, original: c, file, aspect: c.width / c.height, adjust: { ...NEUTRAL } };
 }
 
 async function addFiles(fileList) {
@@ -885,7 +899,36 @@ settingsForm.addEventListener('input', () => {
 
 // ---------- export ----------
 
-function renderExportCanvas() {
+/**
+ * The photo at the detail this cell needs in the export, read again from the
+ * original file (the preview copy is shrunk to save memory). Falls back to the
+ * preview copy if the file can't be read any more.
+ */
+async function exportSource(photo, cell, k) {
+  let full;
+  try {
+    full = await decodeImage(photo.file);
+  } catch {
+    finishAdjusting(photo);
+    return photo.img;
+  }
+  const { scale } = cellGeometry(cell, full, k);
+  const adjusted = !isNeutral(photo.adjust);
+  if (!adjusted && scale >= 1) return full;
+  // Shrink to the size it will be printed at (good resampling, less memory),
+  // then apply the colour adjustments to those pixels.
+  const c = resampled(full, Math.min(1, scale), adjusted);
+  if (adjusted) {
+    const ctx = c.getContext('2d');
+    const pixels = ctx.getImageData(0, 0, c.width, c.height);
+    applyAdjustments(pixels.data, photo.adjust);
+    ctx.putImageData(pixels, 0, 0);
+  }
+  return c;
+}
+
+/** Draws the page one photo at a time, so only one full-size photo is in memory. */
+async function renderExportCanvas() {
   const { page } = state;
   const areaSqIn = (page.width / MM_PER_INCH) * (page.height / MM_PER_INCH);
   const dpi = Math.min(state.settings.dpi, Math.sqrt(MAX_EXPORT_PIXELS / areaSqIn));
@@ -893,9 +936,14 @@ function renderExportCanvas() {
   const out = document.createElement('canvas');
   out.width = Math.round(page.width * k);
   out.height = Math.round(page.height * k);
-  drawPage(out.getContext('2d'), page, state.cells, state.photos, k, {
-    background: state.settings.background,
-  });
+  const ctx = out.getContext('2d');
+  drawPage(ctx, page, [], state.photos, k, { background: state.settings.background });
+  for (const cell of state.cells) {
+    const photo = state.photos[cell.photo];
+    const src = await exportSource(photo, cell, k);
+    drawCell(ctx, cell, src, k);
+    if (src instanceof HTMLCanvasElement && src !== photo.img) src.width = src.height = 0; // free it now on iOS
+  }
   return out;
 }
 
@@ -913,8 +961,7 @@ async function createExport(kind) {
   await new Promise(requestAnimationFrame); // let the status message paint
 
   try {
-    state.photos.forEach(finishAdjusting);
-    const out = renderExportCanvas();
+    const out = await renderExportCanvas();
     const jpeg = await toBlob(out, 'image/jpeg', 0.92);
     const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
     let blob = jpeg;

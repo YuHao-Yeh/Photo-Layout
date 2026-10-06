@@ -103,7 +103,7 @@ photo-layout/
  使用者選相片 (input[type=file])
         │
         ▼
- loadPhoto()  ── 解碼、縮小到約 350 萬像素 ──►  state.photos[]
+ loadPhoto()  ── 解碼、預覽用縮小到約 350 萬像素（保留原檔）──►  state.photos[]
         │                                         { img, original, aspect, adjust }
         ▼
  regenerate()  ── generateLayouts(aspects, page) ──►  state.layouts[]（候選版面）
@@ -121,7 +121,7 @@ photo-layout/
  requestDraw()  ──►  下一個畫面更新時重畫
         │
         ▼
- 匯出：renderExportCanvas() 以列印解析度重畫 ──► JPEG ──►（PDF：buildPdf 包裝）
+ 匯出：renderExportCanvas() 重新讀取原檔，以列印解析度逐張重畫 ──► JPEG ──►（PDF：buildPdf 包裝）
 ```
 
 模組相依關係：
@@ -398,7 +398,16 @@ maxX = max(0, (相寬 × 比例 − 框寬) / 2)       // 可左右移動的距�
 dpi = min(使用者選的 dpi, √(16,000,000 / 紙張面積(平方英吋)))
 ```
 
-iOS Safari 的畫布上限約 1,670 萬像素，所以 A4 可完整輸出 300 dpi（2480 × 3508），A3 會自動降到約 230 dpi。匯出畫布用完立即把寬高設為 0 以釋放記憶體。
+iOS Safari 的畫布上限約 1,670 萬像素，所以 A4 可完整輸出 300 dpi（2480 × 3508），A3 會自動降到約 287 dpi。匯出畫布用完立即把寬高設為 0 以釋放記憶體。
+
+預覽用的相片只有約 350 萬像素，直接拿來匯出會不夠清楚（一張佔半頁的相片會被放大），所以 `loadPhoto` 會保留原始檔案 `photo.file`。匯出時 `exportSource` 逐張重新解碼原檔：
+
+1. 用 `cellGeometry` 算出這張相片在列印解析度下的縮放比例。
+2. 若比例小於 1，先以 `imageSmoothingQuality = 'high'` 縮到實際列印大小（畫質好、也省記憶體）。
+3. 有調色就對這份像素套用 `applyAdjustments`。
+4. 畫進匯出畫布後立刻釋放。
+
+一次只有一張全尺寸相片在記憶體中，所以 12 張相片也不會超過 iPhone 的限制。若原檔已無法讀取，就退回使用預覽用的相片。
 
 ### 10.2 JPG
 
@@ -567,7 +576,7 @@ npm run icons
 | --- | --- | --- | --- |
 | `MAX_PHOTOS` | 12 | app.js | 每頁最多相片數 |
 | `MAX_FILE_BYTES` | 80 MB | app.js | 單一檔案上限 |
-| `LOAD_MAX_PIXELS` | 350 萬 | app.js | 載入時縮小到的像素數，控制記憶體 |
+| `LOAD_MAX_PIXELS` | 350 萬 | app.js | 預覽用相片縮小到的像素數，控制記憶體（匯出改讀原檔） |
 | `MAX_EXPORT_PIXELS` | 1,600 萬 | app.js | 匯出畫布上限（iOS 限制） |
 | `MAX_ZOOM` | 5 | app.js | 框內相片最大縮放 |
 | `MAX_VIEW_ZOOM` | 6 | app.js | 頁面最大縮放 |
@@ -622,7 +631,7 @@ npm run icons
 
 ## 19. 已知限制
 
-- 相片載入時縮小到約 350 萬像素，A4 300 dpi 列印足夠；更大紙張的單張相片可能略低於 300 dpi。
+- 匯出時會重新讀取原始相片，清晰度只受原檔像素與紙張解析度上限（約 1,600 萬像素）限制。
 - A3 等大尺寸紙張的匯出解析度受 iOS 畫布上限影響，約 230 dpi。
 - 只有兩張相片時，部分長寬比組合（例如 4:3 加 1:1 在直向 A4）無法避免明顯裁切；「自動最佳」方向可改善。
 - 相片、版面與編輯內容不會儲存，重新整理後需重新開始。

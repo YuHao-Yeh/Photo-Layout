@@ -24,7 +24,7 @@ export function cellGeometry(cell, img, k) {
   };
 }
 
-function drawCell(ctx, cell, img, k) {
+export function drawCell(ctx, cell, img, k) {
   const { scale, maxX, maxY } = cellGeometry(cell, img, k);
   const x = cell.x * k;
   const y = cell.y * k;

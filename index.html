@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6feb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Photo Layout">
+  <title>Photo Layout</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Photo Layout</h1>
+    <span id="paperLabel" class="paper-label"></span>
+  </header>
+
+  <main id="stage">
+    <div id="empty" class="empty">
+      <p class="empty-title">Lay out 2–12 photos on one page</p>
+      <p class="empty-hint">Photos are arranged, scaled and rotated automatically to fill the paper.
+        Afterwards, tap a photo to move, zoom, rotate or swap it.</p>
+      <button type="button" class="button primary" data-action="add">Add photos</button>
+    </div>
+    <canvas id="page" hidden></canvas>
+    <div id="busy" class="busy" hidden>Loading photos…</div>
+  </main>
+
+  <nav id="mainBar" class="bar">
+    <button type="button" id="addBtn" data-action="add">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add
+    </button>
+    <button type="button" id="nextBtn" data-action="next">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="11" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/><rect x="3" y="16" width="8" height="5" rx="1"/></svg>
+      <span>Layout <span id="layoutCount"></span></span>
+    </button>
+    <button type="button" data-action="settings">
+      <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg>Paper
+    </button>
+    <button type="button" id="exportBtn" data-action="export">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>Export
+    </button>
+  </nav>
+
+  <nav id="cellBar" class="bar" hidden>
+    <button type="button" data-action="rotate">
+      <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>Rotate
+    </button>
+    <button type="button" data-action="zoomOut">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/></svg>Smaller
+    </button>
+    <button type="button" data-action="zoomIn">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M20 20l-4-4"/></svg>Larger
+    </button>
+    <button type="button" data-action="reset">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>Reset
+    </button>
+    <button type="button" id="swapBtn" data-action="swap">
+      <svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"/></svg>Swap
+    </button>
+    <button type="button" class="danger" data-action="remove">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Remove
+    </button>
+    <button type="button" data-action="deselect">
+      <svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Done
+    </button>
+  </nav>
+
+  <input id="fileInput" type="file" accept="image/*" multiple hidden>
+
+  <dialog id="settingsDialog">
+    <form id="settingsForm" method="dialog" class="sheet">
+      <header class="sheet-head">
+        <h2>Paper</h2>
+        <button class="link" value="close">Done</button>
+      </header>
+      <label class="field">Size
+        <select name="paper"></select>
+      </label>
+      <div id="customSize" class="field two" hidden>
+        <label>Width (mm)<input type="number" name="customWidth" min="20" max="1000" step="1" inputmode="decimal"></label>
+        <label>Height (mm)<input type="number" name="customHeight" min="20" max="1000" step="1" inputmode="decimal"></label>
+      </div>
+      <fieldset class="field segmented">
+        <legend>Orientation</legend>
+        <label><input type="radio" name="orientation" value="portrait"><span>Portrait</span></label>
+        <label><input type="radio" name="orientation" value="landscape"><span>Landscape</span></label>
+        <label><input type="radio" name="orientation" value="auto"><span>Best fit</span></label>
+      </fieldset>
+      <label class="field">Margin <output id="marginOut"></output>
+        <input type="range" name="margin" min="0" max="25" step="1">
+      </label>
+      <label class="field">Space between photos <output id="gapOut"></output>
+        <input type="range" name="gap" min="0" max="15" step="1">
+      </label>
+      <label class="field check">
+        <input type="checkbox" name="allowRotate"> Rotate photos to fit better
+      </label>
+      <label class="field inline">Background
+        <input type="color" name="background">
+      </label>
+    </form>
+  </dialog>
+
+  <dialog id="exportDialog">
+    <form method="dialog" class="sheet">
+      <header class="sheet-head">
+        <h2>Export</h2>
+        <button class="link" value="close">Close</button>
+      </header>
+      <label class="field">Quality
+        <select id="dpiSelect">
+          <option value="150">Standard (150 dpi)</option>
+          <option value="300">Print (300 dpi)</option>
+        </select>
+      </label>
+      <div class="field two">
+        <button type="button" class="button primary" data-action="makePdf">Create PDF</button>
+        <button type="button" class="button primary" data-action="makeJpg">Create JPG</button>
+      </div>
+      <p id="exportStatus" class="status" role="status"></p>
+      <div id="exportResult" class="field two" hidden>
+        <button type="button" id="shareBtn" class="button" data-action="share">Share / Save…</button>
+        <a id="downloadLink" class="button" download>Download</a>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

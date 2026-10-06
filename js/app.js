@@ -29,7 +29,19 @@ const DEFAULT_SETTINGS = {
   background: '#ffffff',
   dpi: 300,
   language: null, // null = follow the device language
+  theme: 'sky', // 'sky' | 'wave' | 'candy' (Frutiger Aero) or 'classic'
 };
+
+// Browser toolbar colour on phones, per theme.
+const THEME_COLORS = { sky: '#a8d6f6', wave: '#e9f8f6', candy: '#cdeefc', classic: '#1f6feb' };
+
+function applyTheme(theme) {
+  const name = theme in THEME_COLORS ? theme : DEFAULT_SETTINGS.theme;
+  const root = document.documentElement;
+  root.dataset.theme = name;
+  root.classList.toggle('aero', name !== 'classic');
+  document.querySelector('meta[name="theme-color"]').content = THEME_COLORS[name];
+}
 
 const $ = (sel) => document.querySelector(sel);
 const canvas = $('#page');
@@ -629,6 +641,7 @@ function fillSettingsForm() {
   f.gap.value = s.gap;
   f.allowRotate.checked = s.allowRotate;
   f.background.value = s.background;
+  f.theme.value = s.theme;
   syncSettingsLabels();
 }
 
@@ -656,6 +669,8 @@ settingsForm.addEventListener('input', () => {
   s.gap = Number(f.gap.value);
   s.allowRotate = f.allowRotate.checked;
   s.background = f.background.value;
+  s.theme = f.theme.value;
+  applyTheme(s.theme);
   saveSettings();
   syncSettingsLabels();
   updateUI();
@@ -853,5 +868,6 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
+applyTheme(state.settings.theme);
 state.language = setLanguage(state.settings.language ?? detectLanguage());
 updateUI();

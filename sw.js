@@ -1,10 +1,14 @@
 // Network-first service worker: always serves the latest version when online,
 // falls back to the cached copy so the app also works offline.
-const CACHE = 'photo-layout-v7';
+const CACHE = 'photo-layout-v8';
 const ASSETS = [
   './',
   'index.html',
   'css/app.css',
+  'css/themes.css',
+  'img/theme-sky.svg',
+  'img/theme-wave.svg',
+  'img/theme-candy.svg',
   'js/app.js',
   'js/layout.js',
   'js/render.js',

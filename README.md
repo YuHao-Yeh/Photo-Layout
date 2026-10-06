@@ -29,6 +29,10 @@ is just static files (no backend or database).
 - Resize frames by dragging the lines between photos (each line has a small
   handle). The frames on both sides grow or shrink and the page stays filled.
   Frames can't be made smaller than 8 mm.
+- Themes (Settings → Appearance): three Frutiger Aero styles (Aero Sky,
+  Aero Wave, Aero Candy) with glossy buttons and glass panels, or Classic, which
+  follows the device's light/dark mode. Theme art is in [img/](img/) and styles
+  in [css/themes.css](css/themes.css).
 - English and Traditional Chinese (繁體中文). Uses the device language on the
   first visit; the **中文 / EN** button in the top bar switches and is remembered.
   Text lives in [js/i18n.js](js/i18n.js).
@@ -107,7 +111,9 @@ only 2 photos some shape combinations can't fill the page closely (for example a
 
 ```
 index.html            page structure, toolbars and dialogs
-css/app.css           styles (light and dark mode, iPhone safe areas)
+css/app.css           base styles (Classic theme, light/dark, iPhone safe areas)
+css/themes.css        Frutiger Aero themes and the theme picker
+img/                  theme background art (SVG)
 js/app.js             UI: loading photos, gestures, settings, export
 js/layout.js          layout engine (no DOM, unit-tested)
 js/render.js          draws a layout onto a canvas (preview and export)

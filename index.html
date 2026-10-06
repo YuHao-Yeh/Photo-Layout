@@ -12,6 +12,16 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/themes.css">
+  <script>
+    // Apply the saved theme before first paint (app.js keeps it in sync later).
+    (function () {
+      var theme = "sky";
+      try { theme = JSON.parse(localStorage.getItem("photo-layout:settings") || "{}").theme || theme; } catch (e) {}
+      document.documentElement.dataset.theme = theme;
+      if (theme !== "classic") document.documentElement.classList.add("aero");
+    })();
+  </script>
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
@@ -44,7 +54,7 @@
       <span><span data-i18n="layout">Layout</span> <span id="layoutCount"></span></span>
     </button>
     <button type="button" data-action="settings">
-      <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg><span data-i18n="paper">Paper</span>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span data-i18n="settings">Settings</span>
     </button>
     <button type="button" id="exportBtn" data-action="export">
       <svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg><span data-i18n="export">Export</span>
@@ -123,9 +133,10 @@
   <dialog id="settingsDialog">
     <form id="settingsForm" method="dialog" class="sheet">
       <header class="sheet-head">
-        <h2 data-i18n="paper">Paper</h2>
+        <h2 data-i18n="settings">Settings</h2>
         <button class="link" value="close" data-i18n="done">Done</button>
       </header>
+      <h3 class="section-title" data-i18n="paper">Paper</h3>
       <label class="field"><span data-i18n="size">Size</span>
         <select name="paper"></select>
       </label>
@@ -148,9 +159,19 @@
       <label class="field check">
         <input type="checkbox" name="allowRotate"> <span data-i18n="allowRotate">Rotate photos to fit better</span>
       </label>
-      <label class="field inline"><span data-i18n="background">Background</span>
+      <label class="field inline"><span data-i18n="paperColor">Paper colour</span>
         <input type="color" name="background">
       </label>
+      <h3 class="section-title" data-i18n="appearance">Appearance</h3>
+      <div class="field">
+        <span data-i18n="theme">Theme</span>
+        <div class="theme-picker">
+          <label><input type="radio" name="theme" value="sky"><span class="swatch swatch-sky"></span><span data-i18n="themeSky">Aero Sky</span></label>
+          <label><input type="radio" name="theme" value="wave"><span class="swatch swatch-wave"></span><span data-i18n="themeWave">Aero Wave</span></label>
+          <label><input type="radio" name="theme" value="candy"><span class="swatch swatch-candy"></span><span data-i18n="themeCandy">Aero Candy</span></label>
+          <label><input type="radio" name="theme" value="classic"><span class="swatch swatch-classic"></span><span data-i18n="themeClassic">Classic</span></label>
+        </div>
+      </div>
     </form>
   </dialog>
 

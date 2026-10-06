@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#86c5f2"/>
+      <stop offset=".5" stop-color="#c9e5fa"/>
+      <stop offset=".7" stop-color="#f3f9ff"/>
+      <stop offset="1" stop-color="#edf2f7"/>
+    </linearGradient>
+    <pattern id="checks" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="#fff" opacity=".13"/>
+      <rect x="12" y="12" width="12" height="12" fill="#fff" opacity=".13"/>
+    </pattern>
+    <linearGradient id="checkFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="checkMask"><rect width="1200" height="560" fill="url(#checkFade)"/></mask>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".65" stop-color="#e6f2fc"/>
+      <stop offset="1" stop-color="#9fcbed"/>
+    </linearGradient>
+    <linearGradient id="mirror" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="mirrorMask"><rect y="560" width="1200" height="140" fill="url(#mirror)"/></mask>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+    <g id="city" fill="url(#glass)" stroke="#a6cdec" stroke-width="2">
+      <rect x="10" y="250" width="95" height="310" rx="10"/>
+      <rect x="140" y="370" width="110" height="190" rx="10"/>
+      <rect x="290" y="300" width="58" height="260" rx="10"/>
+      <rect x="380" y="380" width="72" height="180" rx="10"/>
+      <rect x="520" y="450" width="92" height="110" rx="10"/>
+      <rect x="690" y="465" width="80" height="95" rx="10"/>
+      <rect x="820" y="410" width="125" height="150" rx="10"/>
+      <rect x="990" y="350" width="62" height="210" rx="10"/>
+      <rect x="1085" y="270" width="105" height="290" rx="10"/>
+    </g>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <rect width="1200" height="560" fill="url(#checks)" mask="url(#checkMask)"/>
+  <path d="M-60 250 C 220 90 470 370 720 220 S 1080 120 1270 280" fill="none" stroke="#fff" stroke-width="16" opacity=".5"/>
+  <path d="M-60 330 C 260 200 520 420 800 300 S 1110 250 1270 360" fill="none" stroke="#fff" stroke-width="6" opacity=".45"/>
+  <g fill="none" stroke="#fff">
+    <g stroke-width="18" opacity=".55" filter="url(#glow)">
+      <circle cx="90" cy="110" r="105"/><circle cx="470" cy="40" r="78"/>
+      <circle cx="300" cy="200" r="55"/><circle cx="880" cy="170" r="72"/><circle cx="1130" cy="70" r="60"/>
+    </g>
+    <g stroke-width="7" opacity=".95">
+      <circle cx="90" cy="110" r="105"/><circle cx="470" cy="40" r="78"/>
+      <circle cx="300" cy="200" r="55"/><circle cx="880" cy="170" r="72"/><circle cx="1130" cy="70" r="60"/>
+    </g>
+  </g>
+  <use xlink:href="#city"/>
+  <g mask="url(#mirrorMask)" opacity=".35"><use xlink:href="#city" transform="translate(0 1120) scale(1 -1)"/></g>
+  <rect x="-40" y="540" width="1280" height="44" fill="#fff" opacity=".95" filter="url(#glow)"/>
+  <path d="M-40 705 Q 600 590 1240 705" fill="none" stroke="#8db6ea" stroke-width="6"/>
+  <path d="M-40 725 Q 600 610 1240 725" fill="none" stroke="#8db6ea" stroke-width="4" opacity=".7"/>
+</svg>

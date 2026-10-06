@@ -1,60 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice">
+  <!-- Aero Sky: open sky with soft clouds, light rays and floating bubbles. -->
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#86c5f2"/>
-      <stop offset=".5" stop-color="#c9e5fa"/>
-      <stop offset=".7" stop-color="#f3f9ff"/>
-      <stop offset="1" stop-color="#edf2f7"/>
+      <stop offset="0" stop-color="#6fb8ee"/>
+      <stop offset=".45" stop-color="#a9d6f8"/>
+      <stop offset=".8" stop-color="#e3f2fe"/>
+      <stop offset="1" stop-color="#f6fbff"/>
     </linearGradient>
-    <pattern id="checks" width="24" height="24" patternUnits="userSpaceOnUse">
-      <rect width="12" height="12" fill="#fff" opacity=".13"/>
-      <rect x="12" y="12" width="12" height="12" fill="#fff" opacity=".13"/>
-    </pattern>
-    <linearGradient id="checkFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff"/>
+    <radialGradient id="sun" cx="0.85" cy="0.05" r="0.6">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
+      <stop offset=".25" stop-color="#ffffff" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".45"/>
       <stop offset="1" stop-color="#fff" stop-opacity="0"/>
     </linearGradient>
-    <mask id="checkMask"><rect width="1200" height="560" fill="url(#checkFade)"/></mask>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset=".65" stop-color="#e6f2fc"/>
-      <stop offset="1" stop-color="#9fcbed"/>
-    </linearGradient>
-    <linearGradient id="mirror" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".9"/>
-      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-    </linearGradient>
-    <mask id="mirrorMask"><rect y="560" width="1200" height="140" fill="url(#mirror)"/></mask>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
-    <g id="city" fill="url(#glass)" stroke="#a6cdec" stroke-width="2">
-      <rect x="10" y="250" width="95" height="310" rx="10"/>
-      <rect x="140" y="370" width="110" height="190" rx="10"/>
-      <rect x="290" y="300" width="58" height="260" rx="10"/>
-      <rect x="380" y="380" width="72" height="180" rx="10"/>
-      <rect x="520" y="450" width="92" height="110" rx="10"/>
-      <rect x="690" y="465" width="80" height="95" rx="10"/>
-      <rect x="820" y="410" width="125" height="150" rx="10"/>
-      <rect x="990" y="350" width="62" height="210" rx="10"/>
-      <rect x="1085" y="270" width="105" height="290" rx="10"/>
+    <radialGradient id="bubble" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".05"/>
+      <stop offset=".75" stop-color="#ffffff" stop-opacity=".18"/>
+      <stop offset=".95" stop-color="#ffffff" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="softer" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>
+    <g id="b">
+      <circle r="1" fill="url(#bubble)"/>
+      <ellipse cx="-.35" cy="-.4" rx=".28" ry=".16" fill="#fff" opacity=".85" transform="rotate(-35 -.35 -.4)"/>
+      <circle cx=".38" cy=".42" r=".07" fill="#fff" opacity=".6"/>
     </g>
   </defs>
   <rect width="1200" height="800" fill="url(#sky)"/>
-  <rect width="1200" height="560" fill="url(#checks)" mask="url(#checkMask)"/>
-  <path d="M-60 250 C 220 90 470 370 720 220 S 1080 120 1270 280" fill="none" stroke="#fff" stroke-width="16" opacity=".5"/>
-  <path d="M-60 330 C 260 200 520 420 800 300 S 1110 250 1270 360" fill="none" stroke="#fff" stroke-width="6" opacity=".45"/>
-  <g fill="none" stroke="#fff">
-    <g stroke-width="18" opacity=".55" filter="url(#glow)">
-      <circle cx="90" cy="110" r="105"/><circle cx="470" cy="40" r="78"/>
-      <circle cx="300" cy="200" r="55"/><circle cx="880" cy="170" r="72"/><circle cx="1130" cy="70" r="60"/>
-    </g>
-    <g stroke-width="7" opacity=".95">
-      <circle cx="90" cy="110" r="105"/><circle cx="470" cy="40" r="78"/>
-      <circle cx="300" cy="200" r="55"/><circle cx="880" cy="170" r="72"/><circle cx="1130" cy="70" r="60"/>
-    </g>
+  <rect width="1200" height="800" fill="url(#sun)"/>
+  <g fill="url(#ray)">
+    <polygon points="1020,0 1100,0 760,800 600,800"/>
+    <polygon points="1130,0 1170,0 1020,800 930,800"/>
+    <polygon points="940,0 980,0 420,800 330,800" opacity=".6"/>
   </g>
-  <use xlink:href="#city"/>
-  <g mask="url(#mirrorMask)" opacity=".35"><use xlink:href="#city" transform="translate(0 1120) scale(1 -1)"/></g>
-  <rect x="-40" y="540" width="1280" height="44" fill="#fff" opacity=".95" filter="url(#glow)"/>
-  <path d="M-40 705 Q 600 590 1240 705" fill="none" stroke="#8db6ea" stroke-width="6"/>
-  <path d="M-40 725 Q 600 610 1240 725" fill="none" stroke="#8db6ea" stroke-width="4" opacity=".7"/>
+  <!-- High wispy clouds -->
+  <g fill="#fff" filter="url(#softer)" opacity=".7">
+    <ellipse cx="220" cy="150" rx="150" ry="22"/>
+    <ellipse cx="330" cy="135" rx="90" ry="16"/>
+    <ellipse cx="760" cy="230" rx="170" ry="20"/>
+  </g>
+  <!-- Cloud bank along the bottom -->
+  <g fill="#fff" filter="url(#soft)">
+    <ellipse cx="80" cy="690" rx="190" ry="90"/>
+    <ellipse cx="300" cy="720" rx="210" ry="95"/>
+    <ellipse cx="560" cy="700" rx="230" ry="100"/>
+    <ellipse cx="820" cy="725" rx="220" ry="95"/>
+    <ellipse cx="1080" cy="690" rx="220" ry="100"/>
+    <rect x="-50" y="740" width="1300" height="120"/>
+  </g>
+  <g fill="#fff" opacity=".9">
+    <circle cx="200" cy="640" r="60"/><circle cx="270" cy="615" r="75"/><circle cx="350" cy="650" r="55"/>
+    <circle cx="860" cy="645" r="65"/><circle cx="940" cy="610" r="85"/><circle cx="1030" cy="650" r="60"/>
+  </g>
+  <!-- Floating bubbles -->
+  <use href="#b" transform="translate(140 300) scale(48)"/>
+  <use href="#b" transform="translate(250 430) scale(22)"/>
+  <use href="#b" transform="translate(420 210) scale(30)"/>
+  <use href="#b" transform="translate(600 380) scale(16)"/>
+  <use href="#b" transform="translate(700 120) scale(26)"/>
+  <use href="#b" transform="translate(900 360) scale(56)"/>
+  <use href="#b" transform="translate(1080 250) scale(20)"/>
+  <use href="#b" transform="translate(1110 480) scale(34)"/>
+  <use href="#b" transform="translate(60 520) scale(18)"/>
 </svg>

@@ -245,11 +245,10 @@
 
 .section-title { margin: 6px 0 -4px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
 
-/* ---------- Channel: a clean game-console menu look ----------
-   White tiles with grey outlines on fine pinstripes, cyan headings, dotted
-   dividers, soft pill buttons and a pale bar with a glowing cyan edge. */
+/* ---------- Tiles: clean and light ----------
+   White rounded tiles on fine pinstripes, azure accents, soft pill buttons. */
 
-:root[data-theme="channel"] {
+:root[data-theme="tiles"] {
   color-scheme: light;
   --bg: #f4f5f6;
   --surface: #ffffff;
@@ -257,49 +256,49 @@
   --text: #3a3a3a;
   --muted: #8a8f95;
   --border: #b9bcc0;
-  --accent: #23b2e4;
+  --accent: #2a9fd6;
   --accent-text: #ffffff;
   --danger: #e2555c;
-  --cyan-edge: #5cc6ee;
-  --cyan-soft: #e3f6fd;
+  --cyan-edge: #7cc0e4;
+  --cyan-soft: #e6f3fb;
   --tile-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.12);
   --glow: rgba(0, 0, 0, 0.18);
 }
 
-[data-theme="channel"] body {
+[data-theme="tiles"] body {
   background: var(--bg);
   font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Varela Round",
     -apple-system, system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
 }
 
 /* Fine horizontal pinstripes with a soft light in the middle. */
-[data-theme="channel"] #stage {
+[data-theme="tiles"] #stage {
   background:
     radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 65%),
     repeating-linear-gradient(180deg, #e9e9e9 0 1px, #f8f8f8 1px 4px);
 }
 
-[data-theme="channel"] .topbar {
+[data-theme="tiles"] .topbar {
   background: #fff;
-  border-bottom: 2px dotted #c4c7cb;
+  border-bottom: 1px solid #dde0e4;
 }
-[data-theme="channel"] .topbar h1 { color: var(--accent); font-weight: 500; font-size: 22px; letter-spacing: 0.2px; }
+[data-theme="tiles"] .topbar h1 { color: var(--accent); font-weight: 500; font-size: 22px; letter-spacing: 0.2px; }
 
-/* Bottom bars: pale grey with the glowing cyan top edge. */
-[data-theme="channel"] .bar,
-[data-theme="channel"] .adjust-panel {
-  background: linear-gradient(180deg, #eef0f2, #dde0e4);
-  border-top: 2px solid var(--cyan-edge);
-  box-shadow: 0 -2px 8px rgba(92, 198, 238, 0.35);
+/* Bottom bars: pale grey. */
+[data-theme="tiles"] .bar,
+[data-theme="tiles"] .adjust-panel {
+  background: linear-gradient(180deg, #f3f4f6, #e6e8eb);
+  border-top: 1px solid #cdd1d6;
+  box-shadow: inset 0 1px 0 #ffffff;
 }
-[data-theme="channel"] .bar.subbar {
+[data-theme="tiles"] .bar.subbar {
   background: linear-gradient(180deg, #f8f9fa, #eceef0);
-  border-top: 2px dotted #c4c7cb;
+  border-top: 1px solid #dde0e4;
   box-shadow: none;
 }
 
-/* Toolbar buttons are white tiles with grey outlines, like menu channels. */
-[data-theme="channel"] .bar button {
+/* Toolbar buttons are white tiles with grey outlines. */
+[data-theme="tiles"] .bar button {
   margin: 2px;
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -307,73 +306,73 @@
   color: #6f747a;
   box-shadow: var(--tile-shadow);
 }
-[data-theme="channel"] .bar button.danger { color: var(--danger); }
-[data-theme="channel"] .bar button:disabled { background: #eceef0; }
-/* Selected: the cyan "pointer is here" outline. */
-[data-theme="channel"] .bar button.active,
-[data-theme="channel"] .bar.subbar button.active,
-[data-theme="channel"] #cellBar button.active {
+[data-theme="tiles"] .bar button.danger { color: var(--danger); }
+[data-theme="tiles"] .bar button:disabled { background: #eceef0; }
+/* Selected: azure outline. */
+[data-theme="tiles"] .bar button.active,
+[data-theme="tiles"] .bar.subbar button.active,
+[data-theme="tiles"] #cellBar button.active {
   border-color: var(--accent);
   background: var(--cyan-soft);
-  color: #1592c2;
-  box-shadow: 0 0 0 3px rgba(35, 178, 228, 0.25);
+  color: #1d7fb3;
+  box-shadow: 0 0 0 3px rgba(42, 159, 214, 0.22);
 }
 
-/* Pills (like the shop's menu buttons) and tiles. */
-[data-theme="channel"] .button,
-[data-theme="channel"] .presets button,
-[data-theme="channel"] .lang-toggle,
-[data-theme="channel"] .segmented span {
-  border: 2px solid #a8dcee;
-  background: linear-gradient(180deg, #ffffff, #effaf6);
+/* Pills and tiles. */
+[data-theme="tiles"] .button,
+[data-theme="tiles"] .presets button,
+[data-theme="tiles"] .lang-toggle,
+[data-theme="tiles"] .segmented span {
+  border: 2px solid #b9d9ec;
+  background: linear-gradient(180deg, #ffffff, #f1f6fa);
   color: var(--text);
   box-shadow: var(--tile-shadow);
 }
-[data-theme="channel"] .button,
-[data-theme="channel"] .presets button,
-[data-theme="channel"] .lang-toggle { border-radius: 999px; }
-[data-theme="channel"] .lang-toggle { color: #1592c2; }
-[data-theme="channel"] .button.primary,
-[data-theme="channel"] .presets button.active,
-[data-theme="channel"] .segmented input:checked + span {
+[data-theme="tiles"] .button,
+[data-theme="tiles"] .presets button,
+[data-theme="tiles"] .lang-toggle { border-radius: 999px; }
+[data-theme="tiles"] .lang-toggle { color: #1d7fb3; }
+[data-theme="tiles"] .button.primary,
+[data-theme="tiles"] .presets button.active,
+[data-theme="tiles"] .segmented input:checked + span {
   border-color: var(--accent);
   background: var(--cyan-soft);
-  color: #1592c2;
-  box-shadow: 0 0 0 3px rgba(35, 178, 228, 0.22);
+  color: #1d7fb3;
+  box-shadow: 0 0 0 3px rgba(42, 159, 214, 0.2);
 }
-[data-theme="channel"] .segmented span { border-width: 2px; }
-[data-theme="channel"] .segmented label + label span { border-left: 0; }
-[data-theme="channel"] .segmented label:first-of-type span { border-radius: 999px 0 0 999px; }
-[data-theme="channel"] .segmented label:last-of-type span { border-radius: 0 999px 999px 0; }
+[data-theme="tiles"] .segmented span { border-width: 2px; }
+[data-theme="tiles"] .segmented label + label span { border-left: 0; }
+[data-theme="tiles"] .segmented label:first-of-type span { border-radius: 999px 0 0 999px; }
+[data-theme="tiles"] .segmented label:last-of-type span { border-radius: 0 999px 999px 0; }
 
-/* Dialogs: white panel with a light cyan frame and dotted section lines. */
-[data-theme="channel"] dialog {
-  border: 2px solid #a8dcee;
+/* Dialogs: white panel with a light azure frame. */
+[data-theme="tiles"] dialog {
+  border: 2px solid #b9d9ec;
   border-radius: 20px;
   background: #fff;
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.18);
 }
-[data-theme="channel"] dialog::backdrop { background: rgba(240, 242, 244, 0.7); }
-[data-theme="channel"] .sheet-head { background: #fff; border-bottom: 2px dotted #c4c7cb; }
-[data-theme="channel"] .sheet-head h2 { color: var(--accent); font-weight: 500; }
-[data-theme="channel"] .section-title { color: var(--accent); }
+[data-theme="tiles"] dialog::backdrop { background: rgba(240, 242, 244, 0.7); }
+[data-theme="tiles"] .sheet-head { background: #fff; border-bottom: 1px solid #e3e6e9; }
+[data-theme="tiles"] .sheet-head h2 { color: var(--accent); font-weight: 500; }
+[data-theme="tiles"] .section-title { color: var(--accent); }
 
-[data-theme="channel"] select,
-[data-theme="channel"] input[type="number"] {
+[data-theme="tiles"] select,
+[data-theme="tiles"] input[type="number"] {
   border: 2px solid var(--border);
   border-radius: 12px;
   background: #fff;
 }
 
-/* Sliders: grey groove, round white knob with a blue ring. */
-[data-theme="channel"] input[type="range"] { -webkit-appearance: none; appearance: none; height: 30px; background: transparent; }
-[data-theme="channel"] input[type="range"]::-webkit-slider-runnable-track {
+/* Sliders: grey groove, round white knob with an azure ring. */
+[data-theme="tiles"] input[type="range"] { -webkit-appearance: none; appearance: none; height: 30px; background: transparent; }
+[data-theme="tiles"] input[type="range"]::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 3px;
   background: #d5d8dc;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
-[data-theme="channel"] input[type="range"]::-webkit-slider-thumb {
+[data-theme="tiles"] input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 26px;
   height: 26px;
@@ -381,27 +380,27 @@
   border: 2px solid var(--cyan-edge);
   border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #ffffff, #dcdfe3);
-  box-shadow: 0 0 6px rgba(92, 198, 238, 0.55), 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-[data-theme="channel"] input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: #d5d8dc; }
-[data-theme="channel"] input[type="range"]::-moz-range-thumb {
+[data-theme="tiles"] input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: #d5d8dc; }
+[data-theme="tiles"] input[type="range"]::-moz-range-thumb {
   width: 22px;
   height: 22px;
   border: 2px solid var(--cyan-edge);
   border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #ffffff, #dcdfe3);
-  box-shadow: 0 0 6px rgba(92, 198, 238, 0.55);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-[data-theme="channel"] input[type="checkbox"] { accent-color: var(--accent); }
+[data-theme="tiles"] input[type="checkbox"] { accent-color: var(--accent); }
 
-[data-theme="channel"] .zoom-ctl {
+[data-theme="tiles"] .zoom-ctl {
   border: 2px solid var(--border);
   background: #fff;
   box-shadow: var(--tile-shadow);
 }
 
-[data-theme="channel"] .toast,
-[data-theme="channel"] .busy {
+[data-theme="tiles"] .toast,
+[data-theme="tiles"] .busy {
   border: 2px solid var(--cyan-edge);
   border-radius: 16px;
   background: #fff;
@@ -409,13 +408,13 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
-[data-theme="channel"] .empty {
+[data-theme="tiles"] .empty {
   margin: 16px;
   border: 2px solid var(--border);
   border-radius: 22px;
   background: #fff;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
 }
-[data-theme="channel"] .empty-title { color: var(--accent); font-weight: 500; }
+[data-theme="tiles"] .empty-title { color: var(--accent); font-weight: 500; }
 
-.swatch-channel { background: url("../img/theme-channel.svg") center / cover; }
+.swatch-tiles { background: url("../img/theme-tiles.svg") center / cover; }

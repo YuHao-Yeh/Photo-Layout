@@ -29,11 +29,11 @@ const DEFAULT_SETTINGS = {
   background: '#ffffff',
   dpi: 300,
   language: null, // null = follow the device language
-  theme: 'sky', // 'sky' | 'wave' | 'candy' (Frutiger Aero), 'channel' or 'classic'
+  theme: 'sky', // 'sky' | 'wave' | 'candy' (Frutiger Aero), 'tiles' or 'classic'
 };
 
 // Browser toolbar colour on phones, per theme.
-const THEME_COLORS = { sky: '#a8d6f6', wave: '#e9f8f6', candy: '#cdeefc', channel: '#ffffff', classic: '#1f6feb' };
+const THEME_COLORS = { sky: '#a8d6f6', wave: '#e9f8f6', candy: '#cdeefc', tiles: '#ffffff', classic: '#1f6feb' };
 const AERO_THEMES = ['sky', 'wave', 'candy'];
 
 function applyTheme(theme) {

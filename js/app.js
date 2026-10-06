@@ -941,12 +941,42 @@ async function createExport(kind) {
     link.download = name;
     $('#shareBtn').hidden = !navigator.canShare?.({ files: [state.exportFile] });
     $('#exportResult').hidden = false;
+    $('#afterExport').hidden = false;
     status.textContent = t('ready', { name, mb: (blob.size / 1e6).toFixed(1) });
   } catch {
     status.textContent = t('exportFailed');
   } finally {
     buttons.forEach((b) => (b.disabled = false));
   }
+}
+
+/** Start over asks for a second tap, so one slip can't throw away the page. */
+let startOverTimer = 0;
+
+function disarmStartOver() {
+  clearTimeout(startOverTimer);
+  const button = $('#startOverBtn');
+  button.classList.remove('confirm');
+  button.textContent = t('startOver');
+}
+
+function startOver() {
+  const button = $('#startOverBtn');
+  if (!button.classList.contains('confirm')) {
+    button.classList.add('confirm');
+    button.textContent = t('startOverConfirm');
+    startOverTimer = setTimeout(disarmStartOver, 4000);
+    return;
+  }
+  disarmStartOver();
+  state.photos = [];
+  if (state.exportUrl) URL.revokeObjectURL(state.exportUrl);
+  state.exportUrl = null;
+  state.exportFile = null;
+  $('#downloadLink').removeAttribute('href');
+  $('#exportDialog').close();
+  regenerate();
+  toast(t('clearedAll'));
 }
 
 async function shareExport() {
@@ -995,8 +1025,12 @@ const actions = {
     $('#dpiSelect').value = String(state.settings.dpi);
     $('#exportStatus').textContent = '';
     $('#exportResult').hidden = true;
+    $('#afterExport').hidden = true;
+    disarmStartOver();
     $('#exportDialog').showModal();
   },
+  backToEdit: () => $('#exportDialog').close(),
+  startOver,
   swap: () => {
     state.swapFrom = state.swapFrom >= 0 ? -1 : state.selected;
     if (state.swapFrom >= 0) toast(t('swapHint'));

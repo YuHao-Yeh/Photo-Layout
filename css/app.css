@@ -184,6 +184,11 @@ body {
 }
 .button.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
 .button:disabled { opacity: 0.5; }
+.button.danger { color: var(--danger); }
+.button.danger.confirm { border-color: var(--danger); background: var(--danger); color: #fff; text-shadow: none; }
+.after-export { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); }
+.after-export .button { padding-inline: 8px; }
+.after-export .note { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
 
 dialog {
   width: min(440px, calc(100vw - 32px));

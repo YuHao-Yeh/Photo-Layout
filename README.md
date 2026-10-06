@@ -51,6 +51,11 @@ is just static files (no backend or database).
   Share/Save sends it to Photos, Files, AirDrop, Print and so on.
 - Can be added to the Home Screen and used offline (needs HTTPS, see below).
 
+## Documentation
+
+- [技術手冊（繁體中文）](doc/techbook.zh-Hant.md): architecture, layout engine,
+  rendering, gestures, colour, export, themes, security, testing and extension guide.
+
 ## Security
 
 No server, accounts or uploads: photos never leave the device. The page has a
@@ -141,6 +146,7 @@ manifest.webmanifest  Home Screen app metadata
 icons/                app icons (regenerate with `npm run icons`)
 scripts/serve.mjs     local development server
 tests/                Node tests
+doc/                  technical manual (Traditional Chinese)
 ```
 
 ## Limits

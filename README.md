@@ -51,6 +51,12 @@ is just static files (no backend or database).
   Share/Save sends it to Photos, Files, AirDrop, Print and so on.
 - Can be added to the Home Screen and used offline (needs HTTPS, see below).
 
+## Security
+
+No server, accounts or uploads: photos never leave the device. The page has a
+strict Content Security Policy, loads nothing from other sites, and validates
+stored settings and picked files. Details in [SECURITY.md](SECURITY.md).
+
 ## Run it on your computer
 
 Requires [Node.js](https://nodejs.org/) 18 or newer. There are no packages to install.
@@ -130,6 +136,7 @@ js/layout.js          layout engine (no DOM, unit-tested)
 js/render.js          draws a layout onto a canvas (preview and export)
 js/pdf.js             minimal PDF writer (one page, one JPEG)
 sw.js                 service worker for offline use
+js/theme-boot.js      applies the saved theme before the first paint
 manifest.webmanifest  Home Screen app metadata
 icons/                app icons (regenerate with `npm run icons`)
 scripts/serve.mjs     local development server

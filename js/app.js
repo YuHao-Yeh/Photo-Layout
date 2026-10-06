@@ -5,6 +5,7 @@ import { t, setLanguage, detectLanguage } from './i18n.js';
 import { applyAdjustments, isNeutral, NEUTRAL, PRESETS } from './adjust.js';
 
 const MAX_PHOTOS = 12;
+const MAX_FILE_BYTES = 80 * 1024 * 1024; // bigger files are refused, so they can't freeze the page
 const LOAD_MAX_PIXELS = 3.5e6; // per photo; keeps 12 photos within iPhone memory limits
 const MAX_EXPORT_PIXELS = 16e6; // iOS Safari refuses canvases above ~16.7M pixels
 const MAX_ZOOM = 5;
@@ -33,11 +34,14 @@ const DEFAULT_SETTINGS = {
 };
 
 // Browser toolbar colour on phones, per theme.
+// Own keys only: `in` would also accept built-ins like "__proto__" or "toString".
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
 const THEME_COLORS = { sky: '#a8d6f6', wave: '#e9f8f6', candy: '#cdeefc', tiles: '#ffffff', classic: '#1f6feb' };
 const AERO_THEMES = ['sky', 'wave', 'candy'];
 
 function applyTheme(theme) {
-  const name = theme in THEME_COLORS ? theme : DEFAULT_SETTINGS.theme;
+  const name = hasOwn(THEME_COLORS, theme) ? theme : DEFAULT_SETTINGS.theme;
   const root = document.documentElement;
   root.dataset.theme = name;
   root.classList.toggle('aero', AERO_THEMES.includes(name));
@@ -76,10 +80,33 @@ const state = {
 
 function loadSettings() {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    return sanitizeSettings(JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'));
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
+}
+
+/**
+ * Stored settings come from the browser and could be corrupted or edited by
+ * hand, so only known keys with valid values are kept; anything else falls
+ * back to the default.
+ */
+function sanitizeSettings(saved) {
+  const s = { ...DEFAULT_SETTINGS };
+  if (!saved || typeof saved !== 'object') return s;
+  const num = (v, lo, hi) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
+  if (hasOwn(PAPER_SIZES, saved.paper) || saved.paper === 'Custom') s.paper = saved.paper;
+  if (num(saved.customWidth, 20, 1000)) s.customWidth = saved.customWidth;
+  if (num(saved.customHeight, 20, 1000)) s.customHeight = saved.customHeight;
+  if (['portrait', 'landscape', 'auto'].includes(saved.orientation)) s.orientation = saved.orientation;
+  if (num(saved.margin, 0, 25)) s.margin = saved.margin;
+  if (num(saved.gap, 0, 15)) s.gap = saved.gap;
+  if (typeof saved.allowRotate === 'boolean') s.allowRotate = saved.allowRotate;
+  if (typeof saved.background === 'string' && /^#[0-9a-f]{6}$/i.test(saved.background)) s.background = saved.background;
+  if (saved.dpi === 150 || saved.dpi === 300) s.dpi = saved.dpi;
+  if (['en', 'zh-Hant'].includes(saved.language)) s.language = saved.language;
+  if (hasOwn(THEME_COLORS, saved.theme)) s.theme = saved.theme;
+  return s;
 }
 
 function saveSettings() {
@@ -94,7 +121,7 @@ function paperDims(orientation) {
   const s = state.settings;
   const base = s.paper === 'Custom'
     ? { width: s.customWidth, height: s.customHeight }
-    : PAPER_SIZES[s.paper] || PAPER_SIZES.A4;
+    : (hasOwn(PAPER_SIZES, s.paper) ? PAPER_SIZES[s.paper] : PAPER_SIZES.A4);
   const short = Math.min(base.width, base.height);
   const long = Math.max(base.width, base.height);
   return orientation === 'landscape' ? { width: long, height: short } : { width: short, height: long };
@@ -193,7 +220,14 @@ function nextLayout() {
 
 // ---------- photos ----------
 
+/** Only real image files of a sensible size are opened. */
+function checkFile(file) {
+  if (file.type && !file.type.startsWith('image/')) throw new Error('not an image');
+  if (file.size > MAX_FILE_BYTES) throw new Error('too large');
+}
+
 async function loadPhoto(file) {
+  checkFile(file);
   const url = URL.createObjectURL(file);
   try {
     const img = new Image();

@@ -3,17 +3,20 @@
 //
 // Each cell carries the user's adjustments:
 //   rot   0 | 90 | 180 | 270  clockwise rotation of the photo inside the cell
-//   zoom  >= 1                1 = photo just covers the cell
+//   fit   bool                false = photo covers the cell (cropped),
+//                             true = whole photo shown inside the cell
+//   zoom  >= 1                1 = photo just covers (or just fits) the cell
 //   panX, panY  -1..1         how far the photo is shifted within its overflow
 
-/** Scale and maximum pan offsets (in pixels) of a photo covering its cell. */
+/** Scale and maximum pan offsets (in pixels) of a photo in its cell. */
 export function cellGeometry(cell, img, k) {
   const quarterTurn = cell.rot % 180 !== 0;
   const rw = quarterTurn ? img.height : img.width;
   const rh = quarterTurn ? img.width : img.height;
   const cw = cell.w * k;
   const ch = cell.h * k;
-  const scale = Math.max(cw / rw, ch / rh) * cell.zoom;
+  const base = cell.fit ? Math.min(cw / rw, ch / rh) : Math.max(cw / rw, ch / rh);
+  const scale = base * cell.zoom;
   return {
     scale,
     maxX: Math.max(0, (rw * scale - cw) / 2),

@@ -11,8 +11,8 @@ export const STRINGS = {
     emptyTitle: 'Lay out 2–12 photos on one page',
     emptyHint:
       'Photos are arranged, scaled and rotated automatically to fill the paper. ' +
-      'Afterwards, tap a photo to move, zoom, rotate or swap it, and drag the ' +
-      'lines between photos to resize the frames.',
+      'Afterwards, tap a photo to move, zoom, rotate or swap it, double-tap it to ' +
+      'show the whole photo, and drag the lines between photos to resize the frames.',
     addPhotos: 'Add photos',
     loading: 'Loading photos…',
     add: 'Add',
@@ -53,6 +53,8 @@ export const STRINGS = {
     openFailed: ({ n }) => `${n} file(s) could not be opened.`,
     addOneMore: 'Add at least one more photo.',
     swapHint: 'Tap the photo to swap with.',
+    fitWhole: 'Showing the whole photo. Double-tap again to fill the frame.',
+    fitFill: 'Filling the frame.',
     rendering: 'Rendering…',
     ready: ({ name, mb }) => `${name} is ready (${mb} MB).`,
     exportFailed: 'Export failed. Try the Standard quality setting.',
@@ -65,7 +67,7 @@ export const STRINGS = {
     emptyTitle: '將 2–12 張相片排在同一頁',
     emptyHint:
       '相片會自動排列、縮放和旋轉，填滿整張紙。' +
-      '之後可以點選相片來移動、縮放、旋轉或交換，也可以拖曳相片之間的分隔線來調整相框大小。',
+      '之後可以點選相片來移動、縮放、旋轉或交換，點兩下可顯示完整相片，也可以拖曳相片之間的分隔線來調整相框大小。',
     addPhotos: '加入相片',
     loading: '正在載入相片…',
     add: '加入',
@@ -106,6 +108,8 @@ export const STRINGS = {
     openFailed: ({ n }) => `有 ${n} 個檔案無法開啟。`,
     addOneMore: '請再加入至少一張相片。',
     swapHint: '請點選要交換的相片。',
+    fitWhole: '顯示完整相片。再點兩下可填滿相框。',
+    fitFill: '相片已填滿相框。',
     rendering: '正在產生檔案…',
     ready: ({ name, mb }) => `${name} 已完成（${mb} MB）。`,
     exportFailed: '匯出失敗，請改用「標準」品質再試一次。',

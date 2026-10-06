@@ -8,6 +8,8 @@ const LOAD_MAX_PIXELS = 3.5e6; // per photo; keeps 12 photos within iPhone memor
 const MAX_EXPORT_PIXELS = 16e6; // iOS Safari refuses canvases above ~16.7M pixels
 const MAX_ZOOM = 5;
 const MIN_FRAME_MM = 8; // frames can't be dragged smaller than this
+const DOUBLE_TAP_MS = 350;
+const TAP_SLOP_PX = 10; // a touch that moves less than this is a tap, not a drag
 const DIVIDER_HIT_PX = 14; // how close (CSS px) a touch must be to grab a cut line
 const MAX_ALTERNATIVES = 12;
 const ALTERNATIVE_SCORE_RANGE = 0.3; // hide alternatives much worse than the best
@@ -114,7 +116,7 @@ function showLayout(index) {
   // A copy, so resized frames don't leak into the stored alternative.
   state.tree = layout ? cloneTree(layout.tree) : null;
   state.cells = layout
-    ? layout.cells.map((c) => ({ ...c, rot: c.rotated ? 90 : 0, zoom: 1, panX: 0, panY: 0 }))
+    ? layout.cells.map((c) => ({ ...c, rot: c.rotated ? 90 : 0, fit: false, zoom: 1, panX: 0, panY: 0 }))
     : [];
   state.dividers = layout ? relayout().dividers : [];
   state.selected = -1;
@@ -215,6 +217,7 @@ function swapCells(i, j) {
   for (const c of [a, b]) {
     c.rotated = state.settings.allowRotate && shouldRotate(c.w / c.h, state.photos[c.photo].aspect);
     c.rot = c.rotated ? 90 : 0;
+    c.fit = false;
     c.zoom = 1;
     c.panX = 0;
     c.panY = 0;
@@ -315,6 +318,7 @@ function toast(message) {
 
 const pointers = new Map();
 let gesture = null;
+let lastTap = null; // { cell, time, x, y } of the last quick tap, for double-tap
 
 function toPage(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
@@ -380,8 +384,26 @@ canvas.addEventListener('pointerdown', (e) => {
   }
   if (hit !== state.selected) select(hit);
   const c = state.cells[hit];
-  gesture = { type: 'pan', x: e.clientX, y: e.clientY, panX: c.panX, panY: c.panY };
+
+  const now = performance.now();
+  if (lastTap && lastTap.cell === hit && now - lastTap.time < DOUBLE_TAP_MS &&
+      Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < TAP_SLOP_PX * 3) {
+    lastTap = null;
+    gesture = null;
+    toggleFit(c);
+    return;
+  }
+  gesture = { type: 'pan', cell: hit, x: e.clientX, y: e.clientY, panX: c.panX, panY: c.panY };
 });
+
+/** Double-tap: switch between filling the frame and showing the whole photo. */
+function toggleFit(c) {
+  c.fit = !c.fit;
+  c.zoom = 1;
+  c.panX = c.panY = 0;
+  toast(t(c.fit ? 'fitWhole' : 'fitFill'));
+  requestDraw();
+}
 
 canvas.addEventListener('pointermove', (e) => {
   if (!pointers.has(e.pointerId)) {
@@ -416,6 +438,11 @@ canvas.addEventListener('pointermove', (e) => {
 
 function endPointer(e) {
   pointers.delete(e.pointerId);
+  // A pan that barely moved is a tap; remember it to detect a double-tap.
+  if (e.type === 'pointerup' && gesture?.type === 'pan' && pointers.size === 0 &&
+      Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) < TAP_SLOP_PX) {
+    lastTap = { cell: gesture.cell, time: performance.now(), x: e.clientX, y: e.clientY };
+  }
   if (gesture?.type === 'divider' && pointers.size === 0) {
     state.activeDivider = null;
     requestDraw();
@@ -589,6 +616,7 @@ const cellEdits = {
   },
   reset(c) {
     c.rot = c.rotated ? 90 : 0;
+    c.fit = false;
     c.zoom = 1;
     c.panX = c.panY = 0;
   },

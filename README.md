@@ -16,9 +16,10 @@ is just static files (no backend or database).
   Portrait, landscape, or **Best fit** (picks whichever fits the photos better).
 - Margin, spacing between photos, background colour, and an option to allow
   rotating photos 90° for a better fit.
-- Tap a photo to adjust it: drag to choose which part shows, pinch or use
-  Smaller/Larger to zoom, Rotate, Reset, Swap with another photo, Replace it
-  with a different photo (the frames stay as they are), or Remove.
+- Tap a photo to edit it. Drag to choose which part shows, pinch to zoom. The
+  toolbar groups the tools: **Zoom & Rotate** (Rotate, Smaller, Larger, Whole
+  photo, Reset), **Adjust** (colours), and **Photo** (Swap with another photo,
+  Replace it with a different photo while the frames stay as they are, Remove).
 - **Adjust (調色)**: change a photo's brightness, contrast, saturation and
   warmth, or tap a preset (Original, B&W, Vivid, Warm, Cool). Edits show live,
   stay with the photo when it's swapped, and are included in exports. The

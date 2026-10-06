@@ -48,6 +48,7 @@ const state = {
   selected: -1,
   swapFrom: -1,
   adjusting: false, // colour panel open for the selected photo
+  cellGroup: null, // open second row of the photo toolbar: 'transform' | 'photo'
   seed: 1,
   language: 'en',
   view: { k: 1, dpr: 1 }, // preview CSS pixels per mm
@@ -129,6 +130,7 @@ function showLayout(index) {
   state.selected = -1;
   state.swapFrom = -1;
   state.adjusting = false;
+  state.cellGroup = null;
   updateUI();
   resize();
 }
@@ -311,6 +313,13 @@ function updateUI() {
   canvas.hidden = !state.page;
   $('#mainBar').hidden = editing;
   $('#cellBar').hidden = !editing || adjusting;
+  const group = editing && !adjusting ? state.cellGroup : null;
+  $('#transformBar').hidden = group !== 'transform';
+  $('#photoBar').hidden = group !== 'photo';
+  for (const b of document.querySelectorAll('#cellBar [data-group]')) {
+    b.classList.toggle('active', b.dataset.group === group);
+  }
+  $('#fitBtn').classList.toggle('active', !!state.cells[state.selected]?.fit);
   $('#adjustPanel').hidden = !adjusting;
   if (adjusting) syncAdjustPanel();
   $('#addBtn').disabled = state.photos.length >= MAX_PHOTOS;
@@ -333,7 +342,10 @@ function updateUI() {
 function select(index) {
   const previous = state.cells[state.selected];
   if (previous && index !== state.selected) finishAdjusting(state.photos[previous.photo]);
-  if (index < 0) state.adjusting = false;
+  if (index < 0) {
+    state.adjusting = false;
+    state.cellGroup = null;
+  }
   state.selected = index;
   state.swapFrom = -1;
   updateUI();
@@ -528,6 +540,7 @@ function toggleFit(c) {
   c.zoom = 1;
   c.panX = c.panY = 0;
   toast(t(c.fit ? 'fitWhole' : 'fitFill'));
+  updateUI(); // the Whole photo button shows the current mode
   requestDraw();
 }
 
@@ -777,8 +790,19 @@ const actions = {
   remove: removeSelectedPhoto,
   replace: () => $('#replaceInput').click(),
   deselect: () => select(-1),
+  group: (button) => {
+    const g = button.dataset.group;
+    state.cellGroup = state.cellGroup === g ? null : g;
+    updateUI();
+  },
+  fit: () => {
+    const c = state.cells[state.selected];
+    if (c) toggleFit(c);
+    updateUI();
+  },
   adjust: () => {
     state.adjusting = true;
+    state.cellGroup = null;
     updateUI();
   },
   adjustReset: () => applyPreset('original'),
@@ -800,9 +824,10 @@ document.addEventListener('click', (e) => {
   if (cellEdits[name]) {
     const c = state.cells[state.selected];
     if (c) cellEdits[name](c);
+    updateUI(); // Reset turns Whole photo off
     requestDraw();
   } else {
-    actions[name]?.();
+    actions[name]?.(button);
   }
 });
 

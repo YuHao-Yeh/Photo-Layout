@@ -47,12 +47,39 @@ function outlineCell(ctx, cell, k, color, dashed) {
   ctx.restore();
 }
 
+// A pill-shaped grip in the middle of each cut line, hinting that it can be
+// dragged to resize the frames on either side.
+function drawHandle(ctx, d, k, active) {
+  const long = 28;
+  const short = 6;
+  const horizontalCut = d.dir === 'h'; // vertical line between side-by-side frames
+  const cx = (horizontalCut ? d.pos : d.x + d.w / 2) * k;
+  const cy = (horizontalCut ? d.y + d.h / 2 : d.pos) * k;
+  const w = horizontalCut ? short : long;
+  const h = horizontalCut ? long : short;
+  ctx.save();
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(cx - w / 2, cy - h / 2, w, h, short / 2);
+  else ctx.rect(cx - w / 2, cy - h / 2, w, h); // iOS < 16
+  ctx.fillStyle = active ? '#1f6feb' : 'rgba(255, 255, 255, 0.95)';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+  ctx.shadowBlur = 3;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = active ? '#ffffff' : 'rgba(0, 0, 0, 0.25)';
+  ctx.stroke();
+  ctx.restore();
+}
+
 /**
  * @param k pixels per page unit (mm)
  * @param opts.selected / opts.swapFrom cell indices to highlight (preview only)
+ * @param opts.dividers cut lines to draw resize handles on (preview only)
+ * @param opts.activeDivider the divider being dragged
  */
 export function drawPage(ctx, page, cells, photos, k, opts = {}) {
-  const { background = '#ffffff', selected = -1, swapFrom = -1 } = opts;
+  const { background = '#ffffff', selected = -1, swapFrom = -1, dividers = [], activeDivider = null } = opts;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.fillStyle = background;
@@ -60,4 +87,5 @@ export function drawPage(ctx, page, cells, photos, k, opts = {}) {
   for (const cell of cells) drawCell(ctx, cell, photos[cell.photo].img, k);
   if (cells[swapFrom]) outlineCell(ctx, cells[swapFrom], k, '#f5a524', true);
   if (cells[selected] && selected !== swapFrom) outlineCell(ctx, cells[selected], k, '#1f6feb', false);
+  for (const d of dividers) drawHandle(ctx, d, k, d.node === activeDivider);
 }

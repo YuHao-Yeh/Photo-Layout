@@ -18,6 +18,12 @@ is just static files (no backend or database).
   rotating photos 90° for a better fit.
 - Tap a photo to adjust it: drag to choose which part shows, pinch or use
   Smaller/Larger to zoom, Rotate, Reset, Swap with another photo, or Remove.
+- Resize frames by dragging the lines between photos (each line has a small
+  handle). The frames on both sides grow or shrink and the page stays filled.
+  Frames can't be made smaller than 8 mm.
+- English and Traditional Chinese (繁體中文). Uses the device language on the
+  first visit; the **中文 / EN** button in the top bar switches and is remembered.
+  Text lives in [js/i18n.js](js/i18n.js).
 - Export a **PDF** at the exact paper size, or a **JPG**, at 150 or 300 dpi.
   Share/Save sends it to Photos, Files, AirDrop, Print and so on.
 - Can be added to the Home Screen and used offline (needs HTTPS, see below).
@@ -111,5 +117,6 @@ tests/                Node tests
   iPhone memory limits. That is enough for 300 dpi prints on A4.
 - Exports are capped at 16 megapixels (an iOS Safari canvas limit), so A3 at
   "300 dpi" comes out at about 230 dpi.
-- Adjusting a photo (pan, zoom, rotate) is kept until the photos or paper settings
-  change. Those changes create a fresh layout.
+- Adjusting a photo (pan, zoom, rotate) or resizing frames is kept until the
+  photos or paper settings change, or you switch to another layout. Those create
+  a fresh layout. Switching layouts and coming back undoes frame resizing.

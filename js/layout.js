@@ -71,10 +71,13 @@ function randomTree(photos, rng, allowRotate) {
 }
 
 function clone(t) {
-  return isLeaf(t)
-    ? { photo: t.photo, rotated: t.rotated }
-    : { dir: t.dir, a: clone(t.a), b: clone(t.b) };
+  if (isLeaf(t)) return { photo: t.photo, rotated: t.rotated };
+  const copy = { dir: t.dir, a: clone(t.a), b: clone(t.b) };
+  if (t.split !== undefined) copy.split = t.split;
+  return copy;
 }
+
+export { clone as cloneTree };
 
 function collect(t, leaves, nodes) {
   if (isLeaf(t)) {
@@ -132,23 +135,53 @@ function annotate(t, aspects) {
 }
 
 // Splits each rectangle in proportion to the children's natural aspects, so
-// any mismatch with the page is spread evenly across all photos.
-function place(t, x, y, w, h, gap, out) {
+// any mismatch with the page is spread evenly across all photos. A node's
+// `split` (fraction of the space given to its first child) overrides that,
+// which is how the user resizes frames by dragging the line between them.
+// When `dividers` is given, each cut is recorded with the rectangle it splits
+// and `pos`, the centre of the gap along the cut axis.
+function place(t, x, y, w, h, gap, out, dividers) {
   if (isLeaf(t)) {
     out.push({ photo: t.photo, rotated: t.rotated, x, y, w, h });
   } else if (t.dir === 'h') {
     const avail = w - gap;
-    const w1 = (avail * t.a.aspect) / (t.a.aspect + t.b.aspect);
-    place(t.a, x, y, w1, h, gap, out);
-    place(t.b, x + w1 + gap, y, avail - w1, h, gap, out);
+    const w1 = avail * (t.split ?? t.a.aspect / (t.a.aspect + t.b.aspect));
+    dividers?.push({ node: t, dir: 'h', x, y, w, h, pos: x + w1 + gap / 2 });
+    place(t.a, x, y, w1, h, gap, out, dividers);
+    place(t.b, x + w1 + gap, y, avail - w1, h, gap, out, dividers);
   } else {
     const avail = h - gap;
     const ia = 1 / t.a.aspect;
     const ib = 1 / t.b.aspect;
-    const h1 = (avail * ia) / (ia + ib);
-    place(t.a, x, y, w, h1, gap, out);
-    place(t.b, x, y + h1 + gap, w, avail - h1, gap, out);
+    const h1 = avail * (t.split ?? ia / (ia + ib));
+    dividers?.push({ node: t, dir: 'v', x, y, w, h, pos: y + h1 + gap / 2 });
+    place(t.a, x, y, w, h1, gap, out, dividers);
+    place(t.b, x, y + h1 + gap, w, avail - h1, gap, out, dividers);
   }
+}
+
+/**
+ * Lays out a tree from generateLayouts() again, e.g. after the user changed a
+ * node's `split`. Cells come out in the same order every time.
+ */
+export function layoutTree(tree, aspects, page) {
+  annotate(tree, aspects);
+  const { width, height, margin = 0, gap = 0 } = page;
+  const cells = [];
+  const dividers = [];
+  place(tree, margin, margin, width - 2 * margin, height - 2 * margin, gap, cells, dividers);
+  return { cells, dividers };
+}
+
+/**
+ * Where a cut must sit so the line through it passes `pos` (page units).
+ * Returns the node's new `split` fraction.
+ */
+export function splitAt(divider, pos, gap) {
+  const { dir, x, y, w, h } = divider;
+  const start = dir === 'h' ? x : y;
+  const avail = (dir === 'h' ? w : h) - gap;
+  return Math.min(1, Math.max(0, (pos - start - gap / 2) / avail));
 }
 
 function scoreCells(cells, aspects) {
@@ -202,7 +235,7 @@ function signature(cells, page) {
  *
  * @param {number[]} aspects
  * @param {{width:number, height:number, margin?:number, gap?:number}} page
- * @returns {{page, cells:{photo, rotated, x, y, w, h}[], score:number}[]}
+ * @returns {{page, tree, cells:{photo, rotated, x, y, w, h}[], score:number}[]}
  *   distinct layouts, best first. Empty if nothing fits (e.g. huge margins).
  */
 export function generateLayouts(aspects, page, options = {}) {
@@ -227,7 +260,7 @@ export function generateLayouts(aspects, page, options = {}) {
     const key = signature(best.cells, page);
     const existing = pool.get(key);
     if (!existing || best.score < existing.score) {
-      pool.set(key, { page: { ...page }, cells: best.cells, score: best.score });
+      pool.set(key, { page: { ...page }, tree: clone(tree), cells: best.cells, score: best.score });
     }
   }
 

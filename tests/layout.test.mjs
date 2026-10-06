@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLayouts, createRng, PAPER_SIZES, cropLoss } from '../js/layout.js';
+import {
+  generateLayouts,
+  createRng,
+  PAPER_SIZES,
+  cropLoss,
+  layoutTree,
+  cloneTree,
+  splitAt,
+} from '../js/layout.js';
 
 const A4 = { ...PAPER_SIZES.A4, margin: 5, gap: 3 };
 const EPS = 1e-6;
@@ -80,4 +88,39 @@ test('same seed gives the same result', () => {
 
 test('impossible margins yield no layouts', () => {
   assert.deepEqual(generateLayouts([1, 1], { width: 50, height: 50, margin: 25, gap: 0 }), []);
+});
+
+test('layoutTree reproduces a generated layout', () => {
+  const aspects = randomAspects(9, 21);
+  for (const layout of generateLayouts(aspects, A4)) {
+    const { cells, dividers } = layoutTree(cloneTree(layout.tree), aspects, layout.page);
+    assert.deepEqual(cells, layout.cells);
+    assert.equal(dividers.length, aspects.length - 1);
+  }
+});
+
+test('dragging a cut line moves it exactly and keeps the page tiled', () => {
+  const page = { width: 210, height: 297, margin: 0, gap: 0 };
+  const aspects = randomAspects(6, 8);
+  const [layout] = generateLayouts(aspects, page);
+  const tree = cloneTree(layout.tree);
+  for (const target of [0.3, 0.5, 0.7]) {
+    const [root] = layoutTree(tree, aspects, page).dividers;
+    const pos = root.dir === 'h' ? target * page.width : target * page.height;
+    root.node.split = splitAt(root, pos, page.gap);
+    const { cells, dividers } = layoutTree(tree, aspects, page);
+    assert.ok(Math.abs(dividers[0].pos - pos) < 1e-9);
+    const area = cells.reduce((s, c) => s + c.w * c.h, 0);
+    assert.ok(Math.abs(area - page.width * page.height) < 1e-6);
+  }
+  // The original layout is untouched by edits to the copy.
+  assert.deepEqual(layoutTree(cloneTree(layout.tree), aspects, page).cells, layout.cells);
+});
+
+test('splitAt accounts for the gap between frames', () => {
+  const d = { dir: 'v', x: 5, y: 5, w: 200, h: 287 };
+  const gap = 3;
+  const split = splitAt(d, 100, gap);
+  // Top frame ends half a gap above the line.
+  assert.ok(Math.abs(d.y + split * (d.h - gap) - (100 - gap / 2)) < 1e-9);
 });

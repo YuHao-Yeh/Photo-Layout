@@ -16,58 +16,61 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Photo Layout</h1>
-    <span id="paperLabel" class="paper-label"></span>
+    <h1 data-i18n="appTitle">Photo Layout</h1>
+    <div class="topbar-end">
+      <span id="paperLabel" class="paper-label"></span>
+      <button type="button" class="lang-toggle" data-action="language"
+        data-i18n="switchLanguage" data-i18n-label="switchLanguageLabel">中文</button>
+    </div>
   </header>
 
   <main id="stage">
     <div id="empty" class="empty">
-      <p class="empty-title">Lay out 2–12 photos on one page</p>
-      <p class="empty-hint">Photos are arranged, scaled and rotated automatically to fill the paper.
-        Afterwards, tap a photo to move, zoom, rotate or swap it.</p>
-      <button type="button" class="button primary" data-action="add">Add photos</button>
+      <p class="empty-title" data-i18n="emptyTitle">Lay out 2–12 photos on one page</p>
+      <p class="empty-hint" data-i18n="emptyHint"></p>
+      <button type="button" class="button primary" data-action="add" data-i18n="addPhotos">Add photos</button>
     </div>
     <canvas id="page" hidden></canvas>
-    <div id="busy" class="busy" hidden>Loading photos…</div>
+    <div id="busy" class="busy" hidden data-i18n="loading">Loading photos…</div>
   </main>
 
   <nav id="mainBar" class="bar">
     <button type="button" id="addBtn" data-action="add">
-      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="add">Add</span>
     </button>
     <button type="button" id="nextBtn" data-action="next">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="11" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/><rect x="3" y="16" width="8" height="5" rx="1"/></svg>
-      <span>Layout <span id="layoutCount"></span></span>
+      <span><span data-i18n="layout">Layout</span> <span id="layoutCount"></span></span>
     </button>
     <button type="button" data-action="settings">
-      <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg>Paper
+      <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg><span data-i18n="paper">Paper</span>
     </button>
     <button type="button" id="exportBtn" data-action="export">
-      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>Export
+      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg><span data-i18n="export">Export</span>
     </button>
   </nav>
 
   <nav id="cellBar" class="bar" hidden>
     <button type="button" data-action="rotate">
-      <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>Rotate
+      <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span data-i18n="rotate">Rotate</span>
     </button>
     <button type="button" data-action="zoomOut">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/></svg>Smaller
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/></svg><span data-i18n="smaller">Smaller</span>
     </button>
     <button type="button" data-action="zoomIn">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M20 20l-4-4"/></svg>Larger
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M20 20l-4-4"/></svg><span data-i18n="larger">Larger</span>
     </button>
     <button type="button" data-action="reset">
-      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>Reset
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span data-i18n="reset">Reset</span>
     </button>
     <button type="button" id="swapBtn" data-action="swap">
-      <svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"/></svg>Swap
+      <svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"/></svg><span data-i18n="swap">Swap</span>
     </button>
     <button type="button" class="danger" data-action="remove">
-      <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Remove
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span data-i18n="remove">Remove</span>
     </button>
     <button type="button" data-action="deselect">
-      <svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Done
+      <svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span data-i18n="done">Done</span>
     </button>
   </nav>
 
@@ -76,32 +79,32 @@
   <dialog id="settingsDialog">
     <form id="settingsForm" method="dialog" class="sheet">
       <header class="sheet-head">
-        <h2>Paper</h2>
-        <button class="link" value="close">Done</button>
+        <h2 data-i18n="paper">Paper</h2>
+        <button class="link" value="close" data-i18n="done">Done</button>
       </header>
-      <label class="field">Size
+      <label class="field"><span data-i18n="size">Size</span>
         <select name="paper"></select>
       </label>
       <div id="customSize" class="field two" hidden>
-        <label>Width (mm)<input type="number" name="customWidth" min="20" max="1000" step="1" inputmode="decimal"></label>
-        <label>Height (mm)<input type="number" name="customHeight" min="20" max="1000" step="1" inputmode="decimal"></label>
+        <label><span data-i18n="width">Width (mm)</span><input type="number" name="customWidth" min="20" max="1000" step="1" inputmode="decimal"></label>
+        <label><span data-i18n="height">Height (mm)</span><input type="number" name="customHeight" min="20" max="1000" step="1" inputmode="decimal"></label>
       </div>
       <fieldset class="field segmented">
-        <legend>Orientation</legend>
-        <label><input type="radio" name="orientation" value="portrait"><span>Portrait</span></label>
-        <label><input type="radio" name="orientation" value="landscape"><span>Landscape</span></label>
-        <label><input type="radio" name="orientation" value="auto"><span>Best fit</span></label>
+        <legend data-i18n="orientation">Orientation</legend>
+        <label><input type="radio" name="orientation" value="portrait"><span data-i18n="portrait">Portrait</span></label>
+        <label><input type="radio" name="orientation" value="landscape"><span data-i18n="landscape">Landscape</span></label>
+        <label><input type="radio" name="orientation" value="auto"><span data-i18n="bestFit">Best fit</span></label>
       </fieldset>
-      <label class="field">Margin <output id="marginOut"></output>
+      <label class="field"><span><span data-i18n="margin">Margin</span> <output id="marginOut"></output></span>
         <input type="range" name="margin" min="0" max="25" step="1">
       </label>
-      <label class="field">Space between photos <output id="gapOut"></output>
+      <label class="field"><span><span data-i18n="gap">Space between photos</span> <output id="gapOut"></output></span>
         <input type="range" name="gap" min="0" max="15" step="1">
       </label>
       <label class="field check">
-        <input type="checkbox" name="allowRotate"> Rotate photos to fit better
+        <input type="checkbox" name="allowRotate"> <span data-i18n="allowRotate">Rotate photos to fit better</span>
       </label>
-      <label class="field inline">Background
+      <label class="field inline"><span data-i18n="background">Background</span>
         <input type="color" name="background">
       </label>
     </form>
@@ -110,23 +113,23 @@
   <dialog id="exportDialog">
     <form method="dialog" class="sheet">
       <header class="sheet-head">
-        <h2>Export</h2>
-        <button class="link" value="close">Close</button>
+        <h2 data-i18n="export">Export</h2>
+        <button class="link" value="close" data-i18n="close">Close</button>
       </header>
-      <label class="field">Quality
+      <label class="field"><span data-i18n="quality">Quality</span>
         <select id="dpiSelect">
-          <option value="150">Standard (150 dpi)</option>
-          <option value="300">Print (300 dpi)</option>
+          <option value="150" data-i18n="dpiStandard">Standard (150 dpi)</option>
+          <option value="300" data-i18n="dpiPrint">Print (300 dpi)</option>
         </select>
       </label>
       <div class="field two">
-        <button type="button" class="button primary" data-action="makePdf">Create PDF</button>
-        <button type="button" class="button primary" data-action="makeJpg">Create JPG</button>
+        <button type="button" class="button primary" data-action="makePdf" data-i18n="createPdf">Create PDF</button>
+        <button type="button" class="button primary" data-action="makeJpg" data-i18n="createJpg">Create JPG</button>
       </div>
       <p id="exportStatus" class="status" role="status"></p>
       <div id="exportResult" class="field two" hidden>
-        <button type="button" id="shareBtn" class="button" data-action="share">Share / Save…</button>
-        <a id="downloadLink" class="button" download>Download</a>
+        <button type="button" id="shareBtn" class="button" data-action="share" data-i18n="share">Share / Save…</button>
+        <a id="downloadLink" class="button" download data-i18n="download">Download</a>
       </div>
     </form>
   </dialog>

@@ -1,11 +1,14 @@
-import { PAPER_SIZES, generateLayouts, shouldRotate } from './layout.js';
+import { PAPER_SIZES, generateLayouts, shouldRotate, layoutTree, cloneTree, splitAt } from './layout.js';
 import { drawPage, cellGeometry } from './render.js';
 import { buildPdf } from './pdf.js';
+import { t, setLanguage, detectLanguage } from './i18n.js';
 
 const MAX_PHOTOS = 12;
 const LOAD_MAX_PIXELS = 3.5e6; // per photo; keeps 12 photos within iPhone memory limits
 const MAX_EXPORT_PIXELS = 16e6; // iOS Safari refuses canvases above ~16.7M pixels
 const MAX_ZOOM = 5;
+const MIN_FRAME_MM = 8; // frames can't be dragged smaller than this
+const DIVIDER_HIT_PX = 14; // how close (CSS px) a touch must be to grab a cut line
 const MAX_ALTERNATIVES = 12;
 const ALTERNATIVE_SCORE_RANGE = 0.3; // hide alternatives much worse than the best
 const SETTINGS_KEY = 'photo-layout:settings';
@@ -21,6 +24,7 @@ const DEFAULT_SETTINGS = {
   allowRotate: true,
   background: '#ffffff',
   dpi: 300,
+  language: null, // null = follow the device language
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -33,10 +37,14 @@ const state = {
   layouts: [],
   layoutIndex: 0,
   page: null, // { width, height, margin, gap } in mm
+  tree: null, // current layout's cut tree; its nodes' `split` hold resized frames
+  dividers: [], // cut lines of the current layout, for dragging
+  activeDivider: null, // tree node whose cut is being dragged
   cells: [], // current layout's cells plus the user's edits (rot, zoom, panX, panY)
   selected: -1,
   swapFrom: -1,
   seed: 1,
+  language: 'en',
   view: { k: 1, dpr: 1 }, // preview CSS pixels per mm
   exportFile: null,
   exportUrl: null,
@@ -93,7 +101,7 @@ function regenerate({ newSeed = false } = {}) {
       const limit = all[0].score + ALTERNATIVE_SCORE_RANGE;
       state.layouts = all.filter((l) => l.score <= limit).slice(0, MAX_ALTERNATIVES);
     } else {
-      toast('The margin and spacing are too large for this paper size.');
+      toast(t('tooLarge'));
     }
   }
   showLayout(0);
@@ -103,13 +111,48 @@ function showLayout(index) {
   const layout = state.layouts[index];
   state.layoutIndex = index;
   state.page = layout ? layout.page : null;
+  // A copy, so resized frames don't leak into the stored alternative.
+  state.tree = layout ? cloneTree(layout.tree) : null;
   state.cells = layout
     ? layout.cells.map((c) => ({ ...c, rot: c.rotated ? 90 : 0, zoom: 1, panX: 0, panY: 0 }))
     : [];
+  state.dividers = layout ? relayout().dividers : [];
   state.selected = -1;
   state.swapFrom = -1;
   updateUI();
   resize();
+}
+
+function relayout() {
+  return layoutTree(state.tree, state.photos.map((p) => p.aspect), state.page);
+}
+
+/**
+ * Moves a cut line toward `pos` (mm). If a frame would get too small, the line
+ * stops as close to `pos` as the minimum frame size allows.
+ */
+function moveDivider(divider, pos) {
+  const node = divider.node;
+  const tooSmall = (result) => result.cells.some((c) => c.w < MIN_FRAME_MM || c.h < MIN_FRAME_MM);
+  const target = splitAt(divider, pos, state.page.gap);
+  let valid = node.split ?? splitAt(divider, divider.pos, state.page.gap);
+  node.split = target;
+  let result = relayout();
+  if (tooSmall(result)) {
+    // Bisect between the last valid position and the target.
+    let invalid = target;
+    for (let i = 0; i < 20; i++) {
+      node.split = (valid + invalid) / 2;
+      if (tooSmall(relayout())) invalid = node.split;
+      else valid = node.split;
+    }
+    node.split = valid;
+    result = relayout();
+  }
+  const { cells, dividers } = result;
+  // Cells come back in the same order, so the user's per-photo edits stay put.
+  cells.forEach((c, i) => Object.assign(state.cells[i], { x: c.x, y: c.y, w: c.w, h: c.h }));
+  state.dividers = dividers;
 }
 
 function nextLayout() {
@@ -141,7 +184,7 @@ async function addFiles(fileList) {
   const room = MAX_PHOTOS - state.photos.length;
   if (!files.length) return;
   if (room <= 0) {
-    toast(`A page holds at most ${MAX_PHOTOS} photos.`);
+    toast(t('maxPhotos', { max: MAX_PHOTOS }));
     return;
   }
   setBusy(true);
@@ -154,9 +197,9 @@ async function addFiles(fileList) {
     }
   }
   setBusy(false);
-  if (files.length > room) toast(`Only the first ${room} photo(s) were added; the limit is ${MAX_PHOTOS}.`);
-  else if (failed) toast(`${failed} file(s) could not be opened.`);
-  else if (state.photos.length === 1) toast('Add at least one more photo.');
+  if (files.length > room) toast(t('partialAdd', { room, max: MAX_PHOTOS }));
+  else if (failed) toast(t('openFailed', { n: failed }));
+  else if (state.photos.length === 1) toast(t('addOneMore'));
   regenerate();
 }
 
@@ -198,6 +241,8 @@ function draw() {
     background: state.settings.background,
     selected: state.selected,
     swapFrom: state.swapFrom,
+    dividers: state.dividers,
+    activeDivider: state.activeDivider,
   });
 }
 
@@ -241,8 +286,8 @@ function updateUI() {
   const s = state.settings;
   const paperName = s.paper === 'Custom' ? `${s.customWidth}×${s.customHeight} mm` : s.paper;
   const landscape = state.page ? state.page.width > state.page.height : s.orientation === 'landscape';
-  const parts = [paperName, landscape ? 'Landscape' : 'Portrait'];
-  if (state.photos.length) parts.unshift(`${state.photos.length} photo${state.photos.length > 1 ? 's' : ''}`);
+  const parts = [paperName, t(landscape ? 'landscape' : 'portrait')];
+  if (state.photos.length) parts.unshift(t('photoCount', { n: state.photos.length }));
   $('#paperLabel').textContent = parts.join(' · ');
 }
 
@@ -271,11 +316,31 @@ function toast(message) {
 const pointers = new Map();
 let gesture = null;
 
-function cellAt(clientX, clientY) {
+function toPage(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
-  const x = (clientX - r.left) / state.view.k;
-  const y = (clientY - r.top) / state.view.k;
+  return { x: (clientX - r.left) / state.view.k, y: (clientY - r.top) / state.view.k };
+}
+
+function cellAt(clientX, clientY) {
+  const { x, y } = toPage(clientX, clientY);
   return state.cells.findIndex((c) => x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h);
+}
+
+/** The cut line nearest the point, if it's within grabbing distance. */
+function dividerAt(clientX, clientY) {
+  const { x, y } = toPage(clientX, clientY);
+  const reach = Math.max(state.page.gap / 2, DIVIDER_HIT_PX / state.view.k);
+  let best = null;
+  let bestDist = reach;
+  for (const d of state.dividers) {
+    const [along, across, from, to] = d.dir === 'h' ? [x, y, d.y, d.y + d.h] : [y, x, d.x, d.x + d.w];
+    const dist = Math.abs(along - d.pos);
+    if (across >= from && across <= to && dist <= bestDist) {
+      best = d;
+      bestDist = dist;
+    }
+  }
+  return best;
 }
 
 const pinchDistance = () => {
@@ -287,11 +352,19 @@ canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  if (pointers.size === 2 && state.selected >= 0) {
+  if (pointers.size === 2 && state.selected >= 0 && gesture?.type !== 'divider') {
     gesture = { type: 'pinch', startDist: pinchDistance(), zoom: state.cells[state.selected].zoom };
     return;
   }
   if (pointers.size !== 1) return;
+
+  const divider = state.swapFrom < 0 && dividerAt(e.clientX, e.clientY);
+  if (divider) {
+    gesture = { type: 'divider', node: divider.node };
+    state.activeDivider = divider.node;
+    requestDraw();
+    return;
+  }
 
   const hit = cellAt(e.clientX, e.clientY);
   if (state.swapFrom >= 0) {
@@ -311,8 +384,23 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 
 canvas.addEventListener('pointermove', (e) => {
-  if (!pointers.has(e.pointerId)) return;
+  if (!pointers.has(e.pointerId)) {
+    // Mouse hovering: show a resize cursor over cut lines.
+    const d = state.page && dividerAt(e.clientX, e.clientY);
+    canvas.style.cursor = d ? (d.dir === 'h' ? 'col-resize' : 'row-resize') : '';
+    return;
+  }
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (gesture?.type === 'divider') {
+    // Look the divider up again: its rectangle moves when an outer cut moves.
+    const divider = state.dividers.find((d) => d.node === gesture.node);
+    const p = toPage(e.clientX, e.clientY);
+    if (divider) moveDivider(divider, divider.dir === 'h' ? p.x : p.y);
+    requestDraw();
+    return;
+  }
+
   const c = state.cells[state.selected];
   if (!gesture || !c) return;
 
@@ -328,6 +416,10 @@ canvas.addEventListener('pointermove', (e) => {
 
 function endPointer(e) {
   pointers.delete(e.pointerId);
+  if (gesture?.type === 'divider' && pointers.size === 0) {
+    state.activeDivider = null;
+    requestDraw();
+  }
   // Lifting one finger of a pinch should not turn into a pan.
   if (gesture?.type === 'pinch' || pointers.size === 0) gesture = null;
 }
@@ -360,7 +452,8 @@ function fillSettingsForm() {
   const f = settingsForm.elements;
   const s = state.settings;
   f.paper.replaceChildren(
-    ...[...Object.keys(PAPER_SIZES), 'Custom'].map((name) => new Option(name, name)),
+    ...Object.keys(PAPER_SIZES).map((name) => new Option(name, name)),
+    new Option(t('custom'), 'Custom'),
   );
   f.paper.value = s.paper;
   f.customWidth.value = s.customWidth;
@@ -434,7 +527,7 @@ async function createExport(kind) {
   const buttons = document.querySelectorAll('[data-action="makePdf"], [data-action="makeJpg"]');
   buttons.forEach((b) => (b.disabled = true));
   $('#exportResult').hidden = true;
-  status.textContent = 'Rendering…';
+  status.textContent = t('rendering');
   await new Promise(requestAnimationFrame); // let the status message paint
 
   try {
@@ -465,9 +558,9 @@ async function createExport(kind) {
     link.download = name;
     $('#shareBtn').hidden = !navigator.canShare?.({ files: [state.exportFile] });
     $('#exportResult').hidden = false;
-    status.textContent = `${name} is ready (${(blob.size / 1e6).toFixed(1)} MB).`;
+    status.textContent = t('ready', { name, mb: (blob.size / 1e6).toFixed(1) });
   } catch {
-    status.textContent = 'Export failed. Try the Standard quality setting.';
+    status.textContent = t('exportFailed');
   } finally {
     buttons.forEach((b) => (b.disabled = false));
   }
@@ -477,7 +570,7 @@ async function shareExport() {
   try {
     await navigator.share({ files: [state.exportFile] });
   } catch (err) {
-    if (err.name !== 'AbortError') toast('Sharing failed. Use Download instead.');
+    if (err.name !== 'AbortError') toast(t('shareFailed'));
   }
 }
 
@@ -502,6 +595,12 @@ const cellEdits = {
 };
 
 const actions = {
+  language: () => {
+    state.language = setLanguage(state.language === 'en' ? 'zh-Hant' : 'en');
+    state.settings.language = state.language; // an explicit choice overrides the device language
+    saveSettings();
+    updateUI();
+  },
   add: () => $('#fileInput').click(),
   next: nextLayout,
   settings: () => {
@@ -516,7 +615,7 @@ const actions = {
   },
   swap: () => {
     state.swapFrom = state.swapFrom >= 0 ? -1 : state.selected;
-    if (state.swapFrom >= 0) toast('Tap the photo to swap with.');
+    if (state.swapFrom >= 0) toast(t('swapHint'));
     updateUI();
     requestDraw();
   },
@@ -557,4 +656,5 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
+state.language = setLanguage(state.settings.language ?? detectLanguage());
 updateUI();
